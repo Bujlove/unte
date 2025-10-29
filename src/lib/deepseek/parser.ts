@@ -119,7 +119,7 @@ export async function generateResumeSummary(parsedData: ParsedResume): Promise<s
 Должность: ${parsedData.professional.title}
 Опыт: ${parsedData.professional.totalExperience} лет
 Навыки: ${parsedData.professional.skills.hard.join(", ")}
-Последняя позиция: ${parsedData.experience[0]?.position || "N/A"} в ${parsedData.experience[0]?.company || "N/A"}
+Последняя позиция: ${parsedData.experience?.[0]?.position || "N/A"} в ${parsedData.experience?.[0]?.company || "N/A"}
 
 Описание должно быть кратким, профессиональным и подчеркивать ключевые компетенции.`;
 
