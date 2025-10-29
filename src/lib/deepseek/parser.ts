@@ -331,8 +331,12 @@ export async function parseResumeTextWithRetry(text: string, maxRetries: number 
       
       // Validate that we got some meaningful data (more flexible)
       const hasPersonalInfo = result.personal.fullName || result.personal.email || result.personal.phone;
-      const hasProfessionalInfo = result.professional.title || result.professional.skills.hard.length > 0 || (result.experience && result.experience.length > 0);
+      const hasProfessionalInfo = result.professional.title || (result.professional.skills.hard && result.professional.skills.hard.length > 0) || (result.experience && result.experience.length > 0);
       const hasAnyData = hasPersonalInfo || hasProfessionalInfo || (result.education && result.education.length > 0);
+      
+      console.log(`Validation: hasPersonalInfo=${hasPersonalInfo}, hasProfessionalInfo=${hasProfessionalInfo}, hasAnyData=${hasAnyData}`);
+      console.log(`Personal: name=${result.personal.fullName}, email=${result.personal.email}, phone=${result.personal.phone}`);
+      console.log(`Professional: title=${result.professional.title}, skills=${result.professional.skills.hard?.length || 0}, experience=${result.experience?.length || 0}`);
       
       if (!hasAnyData) {
         throw new Error('No meaningful data extracted');

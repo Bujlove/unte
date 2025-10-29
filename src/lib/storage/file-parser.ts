@@ -37,7 +37,7 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   try {
     // Fallback to pdf-parse
     const pdfParse = (await import("pdf-parse")).default;
-    const data = await pdfParse(buffer);
+    const data = await pdfParse(new Uint8Array(buffer));
     return data.text;
   } catch (error) {
     console.error("Error parsing PDF:", error);
@@ -80,9 +80,12 @@ export async function extractTextFromFile(
   mimeType: string,
   fileName?: string
 ): Promise<string> {
+  console.log(`Extracting text from file: ${fileName}, mimeType: ${mimeType}, size: ${buffer.length}`);
+  
   // Handle application/octet-stream by trying different parsers
   if (mimeType === "application/octet-stream" && fileName) {
     const ext = fileName.toLowerCase().split('.').pop();
+    console.log(`Detected file extension: ${ext}`);
     if (ext === 'pdf') {
       return extractTextFromPDF(buffer);
     } else if (ext === 'docx' || ext === 'doc') {
@@ -102,6 +105,13 @@ export async function extractTextFromFile(
   } else if (mimeType.startsWith("text/")) {
     return buffer.toString("utf-8");
   } else {
+    // Try to extract as plain text as last resort
+    console.log(`Unknown file type ${mimeType}, trying plain text extraction`);
+    const textContent = buffer.toString("utf-8");
+    if (textContent && textContent.length > 50) {
+      console.log(`Plain text extraction successful, length: ${textContent.length}`);
+      return textContent;
+    }
     throw new Error(`Unsupported file type: ${mimeType}`);
   }
 }
