@@ -43,7 +43,7 @@ export default function UploadPage() {
       formData.append("file", selectedFile);
       formData.append("consent", "true");
 
-      const response = await fetch("/api/resumes/upload-async", {
+      const response = await fetch("/api/resumes/upload", {
         method: "POST",
         body: formData,
       });
@@ -57,11 +57,18 @@ export default function UploadPage() {
           uploadToken: data.uploadToken,
           resumeId: data.resumeId,
         });
-        setProcessingStatus({ status: 'processing' });
+        setProcessingStatus({ 
+          status: 'active',
+          resume: data.summary ? {
+            fullName: data.summary.fullName,
+            lastPosition: data.summary.position,
+            lastCompany: data.summary.company,
+            experienceYears: data.summary.experience,
+            location: data.summary.location,
+            qualityScore: 85 // Default quality score
+          } : null
+        });
         setSelectedFile(null);
-        
-        // Start polling for status updates
-        pollStatus(data.resumeId);
       } else {
         setResult({
           success: false,
@@ -78,35 +85,6 @@ export default function UploadPage() {
     }
   };
 
-  const pollStatus = async (resumeId: string) => {
-    const poll = async () => {
-      try {
-        const response = await fetch(`/api/resumes/status/${resumeId}`);
-        const data = await response.json();
-        
-        if (data.success) {
-          setProcessingStatus({
-            status: data.resume.status,
-            resume: data.resume
-          });
-          
-          // Stop polling if processing is complete
-          if (data.resume.status === 'active' || data.resume.status === 'failed') {
-            return;
-          }
-        }
-        
-        // Continue polling if still processing
-        if (processingStatus?.status === 'processing') {
-          setTimeout(poll, 2000); // Poll every 2 seconds
-        }
-      } catch (error) {
-        console.error('Status polling error:', error);
-      }
-    };
-    
-    poll();
-  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
