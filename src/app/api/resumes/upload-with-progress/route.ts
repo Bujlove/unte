@@ -448,11 +448,11 @@ async function extractBasicInfo(text: string) {
   return {
     personal: {
       fullName: fullName || 'Не указано',
-      email: email,
-      phone: phone,
-      location: null,
-      birthDate: null,
-      photo: null
+      email: email || undefined,
+      phone: phone || undefined,
+      location: undefined,
+      birthDate: undefined,
+      photo: undefined
     },
     professional: {
       title: 'Не указано',
