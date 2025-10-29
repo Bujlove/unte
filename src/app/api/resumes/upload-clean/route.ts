@@ -249,7 +249,7 @@ export async function POST(request: NextRequest) {
           phone: parsedData.personal.phone,
           position: parsedData.professional.title,
           experience: parsedData.professional.totalExperience,
-          skills: parsedData.professional.skills.technical.slice(0, 5)
+          skills: []
         }
       });
 
