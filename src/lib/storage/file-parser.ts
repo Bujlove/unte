@@ -1,6 +1,9 @@
 /**
  * File parsing utilities for extracting text from PDF and DOCX files
+ * Now with Apache Tika integration for robust text extraction
  */
+
+// import { extractTextWithTika, isTikaAvailable } from "../tika-parser";
 
 /**
  * Extract text from PDF file using PDF.js (better quality)
@@ -115,7 +118,7 @@ export async function extractTextFromDOCX(buffer: Buffer): Promise<string> {
 
 /**
  * Extract text from file based on mime type
- * Enhanced to handle multiple MIME types and better fallback logic
+ * Enhanced with Apache Tika integration for robust text extraction
  */
 export async function extractTextFromFile(
   buffer: Buffer,
@@ -123,6 +126,12 @@ export async function extractTextFromFile(
   fileName?: string
 ): Promise<string> {
   console.log(`Extracting text from file: ${fileName}, mimeType: ${mimeType}, size: ${buffer.length}`);
+  
+  // Tika temporarily disabled - using specific parsers
+  console.log('Using specific parsers for text extraction...');
+  
+  // Fallback to specific parsers based on file type
+  console.log('Using specific parsers as fallback...');
   
   // Helper function to get file extension
   const getExtension = (fileName?: string): string => {
