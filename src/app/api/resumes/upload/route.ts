@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { validateFileSize, validateFileType, extractTextFromFile } from "@/lib/storage/file-parser";
 import { parseResumeTextWithRetry, calculateQualityScore, extractSkills, createResumeSummary } from "@/lib/deepseek/parser";
-import { generateResumeEmbedding, generateSummaryEmbedding, embeddingToVector } from "@/lib/deepseek/embeddings";
+import { generateResumeEmbedding, generateSummaryEmbedding, embeddingToVector } from "@/lib/jina/embeddings";
 import { generateToken } from "@/lib/utils";
 import { nanoid } from "nanoid";
 
@@ -108,24 +108,24 @@ export async function POST(request: NextRequest) {
       ? supabase.storage.from("resumes").getPublicUrl(fileName).data.publicUrl
       : null;
 
-    // Clean parsed_data from empty arrays - convert null to empty arrays for JSONB fields
+    // Clean parsed_data - keep null for empty arrays to match database schema
     const cleanParsedData = {
       ...parsedData,
-      experience: parsedData.experience || [],
-      education: parsedData.education || [],
-      languages: parsedData.languages || [],
+      experience: parsedData.experience && parsedData.experience.length > 0 ? parsedData.experience : null,
+      education: parsedData.education && parsedData.education.length > 0 ? parsedData.education : null,
+      languages: parsedData.languages && parsedData.languages.length > 0 ? parsedData.languages : null,
       additional: {
         ...parsedData.additional,
-        certifications: parsedData.additional.certifications || [],
-        publications: parsedData.additional.publications || [],
-        projects: parsedData.additional.projects || [],
+        certifications: parsedData.additional.certifications && parsedData.additional.certifications.length > 0 ? parsedData.additional.certifications : null,
+        publications: parsedData.additional.publications && parsedData.additional.publications.length > 0 ? parsedData.additional.publications : null,
+        projects: parsedData.additional.projects && parsedData.additional.projects.length > 0 ? parsedData.additional.projects : null,
       },
       professional: {
         ...parsedData.professional,
         skills: {
           ...parsedData.professional.skills,
-          soft: parsedData.professional.skills.soft || [],
-          tools: parsedData.professional.skills.tools || [],
+          soft: parsedData.professional.skills.soft && parsedData.professional.skills.soft.length > 0 ? parsedData.professional.skills.soft : null,
+          tools: parsedData.professional.skills.tools && parsedData.professional.skills.tools.length > 0 ? parsedData.professional.skills.tools : null,
         }
       }
     };
@@ -141,12 +141,12 @@ export async function POST(request: NextRequest) {
       phone: parsedData.personal.phone,
       location: parsedData.personal.location,
       parsed_data: cleanParsedData as any,
-      skills: skillsArray || [],
+      skills: skillsArray && skillsArray.length > 0 ? skillsArray : null,
       experience_years: parsedData.professional.totalExperience,
       last_position: parsedData.experience?.[0]?.position || null,
       last_company: parsedData.experience?.[0]?.company || null,
       education_level: parsedData.education?.[0]?.degree || null,
-      languages: parsedData.languages && parsedData.languages.length > 0 ? parsedData.languages as any : [],
+      languages: parsedData.languages && parsedData.languages.length > 0 ? parsedData.languages as any : null,
       embedding: embeddingToVector(embedding),
       summary_embedding: embeddingToVector(summaryEmbedding),
       status: "active",

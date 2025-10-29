@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { generateSearchEmbedding, cosineSimilarity } from "@/lib/deepseek/embeddings";
+import { generateSearchEmbedding, cosineSimilarity } from "@/lib/jina/embeddings";
 
 export async function POST(request: NextRequest) {
   try {

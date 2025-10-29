@@ -1,0 +1,6 @@
+Иван Петров
+Frontend Developer
+Опыт работы: 3 года
+Навыки: React, TypeScript, Node.js
+Email: ivan@example.com
+Телефон: +7-999-123-45-67

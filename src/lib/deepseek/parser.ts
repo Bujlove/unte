@@ -158,7 +158,7 @@ export function calculateQualityScore(parsedData: ParsedResume): number {
   if (parsedData.experience && parsedData.experience.length > 0) score += 10;
   if (parsedData.experience && parsedData.experience.length >= 2) score += 10;
   const hasDetailedExperience = parsedData.experience?.some(
-    (exp) => exp.achievements.length > 0
+    (exp) => exp.achievements && exp.achievements.length > 0
   );
   if (hasDetailedExperience) score += 10;
 
@@ -204,7 +204,7 @@ export function createResumeSummary(parsedData: ParsedResume) {
   
   // Extract key achievements
   const keyAchievements = parsedData.experience
-    ?.flatMap(exp => exp.achievements)
+    ?.flatMap(exp => exp.achievements || [])
     .slice(0, 5) || []; // Top 5 achievements
   
   // Determine work type preferences (basic logic)
@@ -302,7 +302,7 @@ function createFallbackResume(text: string): ParsedResume {
       summary: 'Резюме загружено, требуется ручная обработка',
       totalExperience: experienceYears,
       skills: {
-        hard: foundSkills,
+        hard: foundSkills.length > 0 ? foundSkills : [],
         soft: null,
         tools: null
       }
