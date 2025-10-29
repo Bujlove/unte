@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     const qualityScore = calculateQualityScore(parsedData);
 
     // Extract skills array
-    const skills = extractSkills(parsedData);
+    const skillsArray = extractSkills(parsedData);
 
     // Generate unique upload token for future updates
     const uploadToken = nanoid(32);
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
         phone: parsedData.personal.phone,
         location: parsedData.personal.location,
         parsed_data: parsedData as any,
-        skills: skills.length > 0 ? skills : null,
+        skills: skillsArray,
         experience_years: parsedData.professional.totalExperience,
         last_position: parsedData.experience[0]?.position || null,
         last_company: parsedData.experience[0]?.company || null,

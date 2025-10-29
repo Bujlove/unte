@@ -179,7 +179,7 @@ export function calculateQualityScore(parsedData: ParsedResume): number {
 /**
  * Extract all skills from parsed resume
  */
-export function extractSkills(parsedData: ParsedResume): string[] {
+export function extractSkills(parsedData: ParsedResume): string[] | null {
   const skills = [
     ...parsedData.professional.skills.hard,
     ...parsedData.professional.skills.soft,
@@ -187,7 +187,9 @@ export function extractSkills(parsedData: ParsedResume): string[] {
   ];
 
   // Remove duplicates and normalize
-  return [...new Set(skills.map((s) => s.trim().toLowerCase()))];
+  const uniqueSkills = [...new Set(skills.map((s) => s.trim().toLowerCase()))];
+  
+  return uniqueSkills.length > 0 ? uniqueSkills : null;
 }
 
 /**
