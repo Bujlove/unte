@@ -253,7 +253,7 @@ export function createSafeSummaryData(parsedData: ParsedResume, resumeId: string
   ].filter(Boolean);
 
   const languages = (parsedData.languages || [])
-    .map(lang => lang.name)
+    .map(lang => typeof lang === 'string' ? lang : (lang as any).name || (lang as any).language || '')
     .filter(Boolean);
 
   return {
