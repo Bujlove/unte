@@ -183,7 +183,7 @@ export function createSafeResumeData(parsedData: ParsedResume, fileInfo: {
 
   // Безопасное извлечение языков
   const languages = (parsedData.languages || [])
-    .map(lang => lang.name)
+    .map(lang => typeof lang === 'string' ? lang : (lang as any).name || (lang as any).language || '')
     .filter(Boolean);
 
   // Очистка parsed_data для JSONB
