@@ -1,154 +1,248 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { validateFileSize, validateFileType, extractTextFromFile } from "@/lib/storage/file-parser";
-import { nanoid } from "nanoid";
+import { extractTextFromFile } from "@/lib/storage/file-parser";
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("🚀 Простая загрузка резюме...");
+    
     const formData = await request.formData();
     const file = formData.get("file") as File;
-    const consentGiven = formData.get("consent") === "true";
+    const consent = formData.get("consent") as string;
 
     if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+      return NextResponse.json({
+        success: false,
+        error: "Файл не предоставлен"
+      }, { status: 400 });
     }
 
-    if (!consentGiven) {
-      return NextResponse.json(
-        { error: "Consent for data processing is required" },
-        { status: 400 }
-      );
+    if (consent !== "true") {
+      return NextResponse.json({
+        success: false,
+        error: "Необходимо согласие на обработку данных"
+      }, { status: 400 });
     }
 
-    // Validate file
-    if (!validateFileSize(file.size)) {
-      return NextResponse.json({ error: "File too large (max 10MB)" }, { status: 400 });
+    // Валидация файла
+    const allowedTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+      'text/plain'
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      return NextResponse.json({
+        success: false,
+        error: "Неподдерживаемый тип файла. Разрешены: PDF, DOCX, DOC, TXT"
+      }, { status: 400 });
     }
 
-    if (!validateFileType(file.type, file.name)) {
-      return NextResponse.json(
-        { error: "Invalid file type. Supported formats: PDF, DOCX, DOC, TXT" },
-        { status: 400 }
-      );
+    if (file.size > 10 * 1024 * 1024) { // 10MB
+      return NextResponse.json({
+        success: false,
+        error: "Файл слишком большой. Максимальный размер: 10MB"
+      }, { status: 400 });
     }
 
-    // Convert file to buffer
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    // Extract text from file
-    const text = await extractTextFromFile(buffer, file.type, file.name);
-
-    if (!text || text.length < 100) {
-      return NextResponse.json(
-        { error: "File appears to be empty or too short" },
-        { status: 400 }
-      );
-    }
-
-    // Generate unique upload token
-    const uploadToken = nanoid(32);
-
-    // Upload file to Supabase Storage
     const supabase = await createAdminClient();
-    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const fileName = `${Date.now()}-${sanitizedFileName}`;
-    
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("resumes")
-      .upload(fileName, buffer, {
-        contentType: file.type,
-        upsert: false,
-      });
+    const buffer = Buffer.from(await file.arrayBuffer());
 
-    if (uploadError) {
-      console.error("Storage upload error:", uploadError);
-      return NextResponse.json({ error: "Failed to upload file" }, { status: 500 });
-    }
-
-    const fileUrl = supabase.storage.from("resumes").getPublicUrl(fileName).data.publicUrl;
-
-    // Create simple resume record without AI parsing
-    const { data: resume, error: insertError } = await supabase
+    // 1. Создаем запись резюме
+    console.log("📝 Создаем запись резюме...");
+    const { data: resume, error: createError } = await supabase
       .from("resumes")
       .insert({
-        file_url: fileUrl,
         file_name: file.name,
         file_size: file.size,
         mime_type: file.type,
-        status: "active",
-        upload_token: uploadToken,
-        consent_given: consentGiven,
-        // Simple extracted data without AI parsing
-        full_name: null,
-        email: null,
-        phone: null,
-        location: null,
-        parsed_data: {
-          personal: {
-            fullName: null,
-            email: null,
-            phone: null,
-            location: null,
-            birthDate: null,
-            photo: null
-          },
-          professional: {
-            title: null,
-            summary: null,
-            totalExperience: 0,
-            skills: {
-              hard: [],
-              soft: [],
-              tools: []
-            }
-          },
-          experience: [],
-          education: [],
-          languages: [],
-          additional: {
-            certifications: [],
-            publications: [],
-            projects: []
-          }
-        },
-        skills: null,
-        experience_years: 0,
-        last_position: null,
-        last_company: null,
-        education_level: null,
-        languages: null,
-        embedding: new Array(768).fill(0),
-        summary_embedding: new Array(768).fill(0),
-        quality_score: 50, // Default score
+        status: 'processing',
+        consent_given: true,
+        expires_at: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString() // 180 дней
       })
       .select()
       .single();
 
-    if (insertError) {
-      console.error("Database insert error:", insertError);
-      return NextResponse.json({ error: "Failed to save resume" }, { status: 500 });
+    if (createError || !resume) {
+      console.error("❌ Ошибка создания записи:", createError);
+      return NextResponse.json({
+        success: false,
+        error: "Не удалось создать запись резюме",
+        details: createError?.message
+      }, { status: 500 });
     }
 
-    return NextResponse.json({
-      success: true,
-      resumeId: resume.id,
-      uploadToken,
-      message: "Resume uploaded successfully (without AI parsing)",
-      summary: {
-        fullName: "Not parsed",
-        position: "Not parsed",
-        company: "Not parsed",
-        experience: 0,
-        skills: [],
-        location: "Not parsed"
+    console.log(`✅ Запись создана: ${resume.id}`);
+
+    // 2. Извлекаем текст
+    console.log("📖 Извлекаем текст...");
+    let text: string;
+    try {
+      text = await extractTextFromFile(buffer, file.type, file.name);
+      
+      if (!text || text.length < 10) {
+        throw new Error("Не удалось извлечь текст из файла");
       }
-    });
+
+      console.log(`✅ Текст извлечен: ${text.length} символов`);
+    } catch (textError) {
+      console.error("❌ Ошибка извлечения текста:", textError);
+      
+      await supabase
+        .from("resumes")
+        .update({ 
+          status: 'failed',
+          processing_error: textError instanceof Error ? textError.message : 'Unknown error'
+        })
+        .eq('id', resume.id);
+
+      return NextResponse.json({
+        success: false,
+        error: "Не удалось извлечь текст из файла",
+        details: textError instanceof Error ? textError.message : 'Unknown error'
+      }, { status: 400 });
+    }
+
+    // 3. Загружаем файл в хранилище
+    console.log("💾 Загружаем файл...");
+    let fileUrl: string;
+    try {
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const fileName = `${resume.id}-${sanitizedFileName}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("resumes")
+        .upload(fileName, buffer, {
+          contentType: file.type,
+          upsert: false,
+        });
+
+      if (uploadError) {
+        throw new Error(`Ошибка загрузки: ${uploadError.message}`);
+      }
+
+      fileUrl = supabase.storage.from("resumes").getPublicUrl(fileName).data.publicUrl;
+      console.log(`✅ Файл загружен: ${fileUrl}`);
+    } catch (storageError) {
+      console.error("❌ Ошибка загрузки файла:", storageError);
+      
+      await supabase
+        .from("resumes")
+        .update({ 
+          status: 'failed',
+          processing_error: storageError instanceof Error ? storageError.message : 'Storage error'
+        })
+        .eq('id', resume.id);
+
+      return NextResponse.json({
+        success: false,
+        error: "Не удалось загрузить файл",
+        details: storageError instanceof Error ? storageError.message : 'Storage error'
+      }, { status: 500 });
+    }
+
+    // 4. Простое извлечение базовой информации
+    console.log("🔍 Извлекаем базовую информацию...");
+    const emailMatch = text.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+    const phoneMatch = text.match(/(\+?[0-9\s\-\(\)]{10,})/);
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    
+    const fullName = lines[0] || 'Не указано';
+    const email = emailMatch ? emailMatch[1] : null;
+    const phone = phoneMatch ? phoneMatch[1] : null;
+
+    // 5. Обновляем запись резюме
+    console.log("💾 Сохраняем данные...");
+    try {
+      await supabase
+        .from("resumes")
+        .update({
+          file_url: fileUrl,
+          full_name: fullName,
+          email: email,
+          phone: phone,
+          parsed_data: {
+            personal: {
+              fullName: fullName,
+              email: email,
+              phone: phone
+            },
+            professional: {
+              title: 'Не указано',
+              summary: text.substring(0, 200) + '...',
+              totalExperience: 0
+            }
+          },
+          experience_years: 0,
+          last_position: 'Не указано',
+          summary: text.substring(0, 200) + '...',
+          status: 'completed',
+          quality_score: 0.8
+        })
+        .eq('id', resume.id);
+
+      // 6. Создаем резюме-сумму
+      console.log("📋 Создаем резюме-сумму...");
+      await supabase
+        .from("resume_summaries")
+        .insert({
+          resume_id: resume.id,
+          quick_id: `RS-${Date.now()}`,
+          full_name: fullName,
+          email: email,
+          phone: phone,
+          current_position: 'Не указано',
+          experience_years: 0,
+          summary: text.substring(0, 200) + '...',
+          quality_score: 0.8,
+          consent_given: true,
+          expires_at: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString()
+        });
+
+      console.log("✅ Данные сохранены успешно");
+
+      return NextResponse.json({
+        success: true,
+        message: "Резюме успешно загружено и обработано",
+        resumeId: resume.id,
+        fileName: file.name,
+        textLength: text.length,
+        textPreview: text.substring(0, 200) + '...',
+        fileUrl: fileUrl,
+        parsedData: {
+          fullName: fullName,
+          email: email,
+          phone: phone,
+          position: 'Не указано',
+          experience: 0
+        }
+      });
+
+    } catch (saveError) {
+      console.error("❌ Ошибка сохранения данных:", saveError);
+      
+      await supabase
+        .from("resumes")
+        .update({ 
+          status: 'failed',
+          processing_error: saveError instanceof Error ? saveError.message : 'Save error'
+        })
+        .eq('id', resume.id);
+
+      return NextResponse.json({
+        success: false,
+        error: "Не удалось сохранить данные",
+        details: saveError instanceof Error ? saveError.message : 'Save error'
+      }, { status: 500 });
+    }
+
   } catch (error) {
-    console.error("Resume upload error:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to process resume" },
-      { status: 500 }
-    );
+    console.error("❌ Критическая ошибка:", error);
+    return NextResponse.json({
+      success: false,
+      error: "Внутренняя ошибка сервера",
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
