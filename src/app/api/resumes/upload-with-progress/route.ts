@@ -132,8 +132,9 @@ export async function POST(request: NextRequest) {
     console.log("📖 Извлекаем текст из файла...");
     const textStartTime = Date.now();
     
+    let text: string;
     try {
-      const text = await extractTextFromFile(buffer, file.type, file.name);
+      text = await extractTextFromFile(buffer, file.type, file.name);
       
       if (!text || text.length < 50) {
         throw new Error("Файл пустой или слишком короткий для обработки");
