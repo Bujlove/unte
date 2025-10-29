@@ -72,33 +72,41 @@ function createSearchableText(parsedData: ParsedResume): string {
 
   // Skills
   parts.push(`Навыки: ${parsedData.professional.skills.hard.join(", ")}`);
-  parts.push(`Инструменты: ${parsedData.professional.skills.tools.join(", ")}`);
-  parts.push(`Soft skills: ${parsedData.professional.skills.soft.join(", ")}`);
+  if (parsedData.professional.skills.tools) {
+    parts.push(`Инструменты: ${parsedData.professional.skills.tools.join(", ")}`);
+  }
+  if (parsedData.professional.skills.soft) {
+    parts.push(`Soft skills: ${parsedData.professional.skills.soft.join(", ")}`);
+  }
 
   // Experience
-  parsedData.experience.forEach((exp) => {
-    parts.push(
-      `${exp.position} в ${exp.company}. ${exp.description}. Достижения: ${exp.achievements.join(", ")}`
-    );
-  });
+  if (parsedData.experience) {
+    parsedData.experience.forEach((exp) => {
+      parts.push(
+        `${exp.position} в ${exp.company}. ${exp.description}. Достижения: ${exp.achievements.join(", ")}`
+      );
+    });
+  }
 
   // Education
-  parsedData.education.forEach((edu) => {
-    parts.push(`${edu.degree} по ${edu.field} в ${edu.institution}`);
-  });
+  if (parsedData.education) {
+    parsedData.education.forEach((edu) => {
+      parts.push(`${edu.degree} по ${edu.field} в ${edu.institution}`);
+    });
+  }
 
   // Languages
-  if (parsedData.languages.length > 0) {
+  if (parsedData.languages && parsedData.languages.length > 0) {
     const langs = parsedData.languages.map((l) => `${l.language} (${l.level})`).join(", ");
     parts.push(`Языки: ${langs}`);
   }
 
   // Additional
-  if (parsedData.additional.certifications.length > 0) {
+  if (parsedData.additional.certifications && parsedData.additional.certifications.length > 0) {
     parts.push(`Сертификаты: ${parsedData.additional.certifications.join(", ")}`);
   }
 
-  if (parsedData.additional.projects.length > 0) {
+  if (parsedData.additional.projects && parsedData.additional.projects.length > 0) {
     parts.push(`Проекты: ${parsedData.additional.projects.join(", ")}`);
   }
 
