@@ -112,7 +112,7 @@ export async function extractTextFromTXT(buffer: Buffer): Promise<string> {
     console.log("Extracting text from TXT file...");
     
     // Try different encodings
-    const encodings: BufferEncoding[] = ['utf-8', 'utf-16le', 'utf-16be', 'latin1', 'ascii'];
+    const encodings: BufferEncoding[] = ['utf-8', 'utf-16le', 'latin1', 'ascii'];
     
     for (const encoding of encodings) {
       try {
@@ -130,6 +130,25 @@ export async function extractTextFromTXT(buffer: Buffer): Promise<string> {
         // Try next encoding
         continue;
       }
+    }
+    
+    // Try UTF-16BE manually (not supported as BufferEncoding)
+    try {
+      const text = buffer.toString('utf16le');
+      // Check if this might be UTF-16BE by looking at byte order
+      if (buffer.length >= 2 && buffer[0] === 0 && buffer[1] !== 0) {
+        // This might be UTF-16BE, try to convert
+        const utf16beText = Buffer.from(buffer).swap16().toString('utf16le');
+        const readableChars = utf16beText.replace(/[\x00-\x1F\x7F-\x9F]/g, '').length;
+        const totalChars = utf16beText.length;
+        
+        if (totalChars > 0 && (readableChars / totalChars) > 0.7) {
+          console.log(`TXT extraction successful with UTF-16BE, length: ${utf16beText.length}`);
+          return utf16beText.trim();
+        }
+      }
+    } catch (error) {
+      // UTF-16BE conversion failed, continue
     }
     
     // Fallback to UTF-8
