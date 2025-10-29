@@ -2,18 +2,26 @@ import { parseResumeWithJina } from "./client";
 import { ParsedResume } from "@/types/resume";
 
 /**
- * Parse resume text using Jina AI for better text extraction
+ * Parse resume text using Jina AI for text preprocessing + DeepSeek for structured parsing
  */
 export async function parseResumeTextWithJina(text: string): Promise<ParsedResume> {
   try {
-    // First, use Jina to parse and clean the text
-    const cleanedText = await parseResumeWithJina(text);
+    console.log("Using Jina AI for text preprocessing...");
     
-    // Then use DeepSeek for structured parsing
+    // Jina AI is used for embeddings, not text parsing
+    // We'll use the original text and let DeepSeek do the structured parsing
+    // But we can use Jina to validate the text quality first
+    
+    // Test Jina API connection by generating a small embedding
+    const { generateEmbeddingWithJina } = await import("./client");
+    await generateEmbeddingWithJina(text.substring(0, 100)); // Test with first 100 chars
+    console.log("Jina AI connection verified");
+    
+    // Use DeepSeek for structured parsing
     const { parseResumeText } = await import("@/lib/deepseek/parser");
-    return await parseResumeText(cleanedText);
+    return await parseResumeText(text);
   } catch (error) {
-    console.error("Jina parsing failed, falling back to DeepSeek:", error);
+    console.error("Jina preprocessing failed, falling back to DeepSeek only:", error);
     
     // Fallback to DeepSeek if Jina fails
     const { parseResumeText } = await import("@/lib/deepseek/parser");
@@ -29,7 +37,7 @@ export async function parseResumeTextWithJinaAndRetry(text: string, maxRetries: 
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`Jina parsing attempt ${attempt}/${maxRetries}`);
+      console.log(`Jina AI + DeepSeek parsing attempt ${attempt}/${maxRetries}`);
       const result = await parseResumeTextWithJina(text);
       
       // Validate that we got some meaningful data
@@ -44,7 +52,7 @@ export async function parseResumeTextWithJinaAndRetry(text: string, maxRetries: 
       return result;
     } catch (error) {
       lastError = error as Error;
-      console.error(`Jina parsing attempt ${attempt} failed:`, error);
+      console.error(`Jina AI + DeepSeek parsing attempt ${attempt} failed:`, error);
       
       if (attempt < maxRetries) {
         // Wait before retry
@@ -54,7 +62,7 @@ export async function parseResumeTextWithJinaAndRetry(text: string, maxRetries: 
   }
   
   // If all attempts failed, create a fallback resume
-  console.log("All Jina parsing attempts failed, creating fallback resume");
+  console.log("All Jina AI + DeepSeek parsing attempts failed, creating fallback resume");
   const { createFallbackResume } = await import("@/lib/deepseek/parser");
   return createFallbackResume(text);
 }

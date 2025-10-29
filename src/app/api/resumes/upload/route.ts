@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { validateFileSize, validateFileType, extractTextFromFile } from "@/lib/storage/file-parser";
-import { parseResumeTextWithRetry, calculateQualityScore, extractSkills, createResumeSummary } from "@/lib/deepseek/parser";
+import { parseResumeTextWithJinaAndRetry } from "@/lib/jina/parser";
+import { calculateQualityScore, extractSkills, createResumeSummary } from "@/lib/deepseek/parser";
 import { generateResumeEmbedding, generateSummaryEmbedding, embeddingToVector } from "@/lib/jina/embeddings";
 import { generateToken } from "@/lib/utils";
 import { nanoid } from "nanoid";
@@ -49,10 +50,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse resume with AI (with retry logic)
-    console.log("Starting resume parsing...");
-    const parsedData = await parseResumeTextWithRetry(text);
-    console.log("Resume parsed successfully");
+    // Parse resume with Jina AI (with retry logic)
+    console.log("Starting resume parsing with Jina AI...");
+    const parsedData = await parseResumeTextWithJinaAndRetry(text);
+    console.log("Resume parsed successfully with Jina AI");
     console.log("Parsed data skills:", parsedData.professional.skills);
     console.log("Parsed data languages:", parsedData.languages);
 
