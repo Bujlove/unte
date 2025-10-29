@@ -10,6 +10,7 @@ ALTER TABLE saved_candidates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
+ALTER TABLE resume_summaries ENABLE ROW LEVEL SECURITY;
 
 -- Drop existing policies if they exist
 DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
@@ -45,6 +46,11 @@ DROP POLICY IF EXISTS "Users can insert own audit logs" ON audit_logs;
 
 DROP POLICY IF EXISTS "Team members can view team" ON teams;
 DROP POLICY IF EXISTS "Team owners can manage team" ON teams;
+
+DROP POLICY IF EXISTS "Anyone can read resume summaries" ON resume_summaries;
+DROP POLICY IF EXISTS "Anyone can insert resume summaries" ON resume_summaries;
+DROP POLICY IF EXISTS "Anyone can update resume summaries" ON resume_summaries;
+DROP POLICY IF EXISTS "Anyone can delete resume summaries" ON resume_summaries;
 
 -- Profiles policies
 CREATE POLICY "Users can view own profile" ON profiles
@@ -151,12 +157,20 @@ CREATE POLICY "Users can insert own audit logs" ON audit_logs
 
 -- Teams policies
 CREATE POLICY "Team members can view team" ON teams
-    FOR SELECT USING (
-        auth.uid() = owner_id OR 
-        auth.uid() IN (
-            SELECT user_id FROM team_members WHERE team_id = teams.id
-        )
-    );
+    FOR SELECT USING (auth.uid() = owner_id);
 
 CREATE POLICY "Team owners can manage team" ON teams
     FOR ALL USING (auth.uid() = owner_id);
+
+-- Resume summaries policies (anonymous access)
+CREATE POLICY "Anyone can read resume summaries" ON resume_summaries
+    FOR SELECT USING (true);
+
+CREATE POLICY "Anyone can insert resume summaries" ON resume_summaries
+    FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Anyone can update resume summaries" ON resume_summaries
+    FOR UPDATE USING (true);
+
+CREATE POLICY "Anyone can delete resume summaries" ON resume_summaries
+    FOR DELETE USING (true);
