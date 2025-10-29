@@ -159,7 +159,8 @@ export async function POST(request: NextRequest) {
     } catch (textError) {
       console.error("❌ Ошибка извлечения текста:", textError);
       if (resumeId) {
-        await updateProcessingStatus(supabase, resumeId, 'failed', 'text_extraction', textError.message);
+        const errorMessage = textError instanceof Error ? textError.message : 'Unknown error';
+        await updateProcessingStatus(supabase, resumeId, 'failed', 'text_extraction', errorMessage);
       }
       
       return NextResponse.json({
@@ -210,7 +211,8 @@ export async function POST(request: NextRequest) {
     } catch (storageError) {
       console.error("❌ Ошибка загрузки файла:", storageError);
         if (resumeId) {
-          await updateProcessingStatus(supabase, resumeId, 'failed', 'file_storage', storageError.message);
+          const errorMessage = storageError instanceof Error ? storageError.message : 'Unknown error';
+          await updateProcessingStatus(supabase, resumeId, 'failed', 'file_storage', errorMessage);
         }
       
       return NextResponse.json({
@@ -283,7 +285,8 @@ export async function POST(request: NextRequest) {
     } catch (dataError) {
       console.error("❌ Ошибка подготовки данных:", dataError);
         if (resumeId) {
-          await updateProcessingStatus(supabase, resumeId, 'failed', 'data_preparation', dataError.message);
+          const errorMessage = dataError instanceof Error ? dataError.message : 'Unknown error';
+          await updateProcessingStatus(supabase, resumeId, 'failed', 'data_preparation', errorMessage);
         }
       
       return NextResponse.json({
@@ -388,7 +391,8 @@ export async function POST(request: NextRequest) {
     if (resumeId) {
       try {
         if (resumeId) {
-          await updateProcessingStatus(supabase, resumeId, 'failed', 'critical_error', error.message);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          await updateProcessingStatus(supabase, resumeId, 'failed', 'critical_error', errorMessage);
         }
       } catch (updateError) {
         console.error("❌ Не удалось обновить статус ошибки:", updateError);
