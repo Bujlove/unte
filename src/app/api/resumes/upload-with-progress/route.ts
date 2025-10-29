@@ -271,7 +271,6 @@ export async function POST(request: NextRequest) {
           ...resumeData,
           processing_status: 'processing',
           file_metadata: {
-            ...resumeData.file_metadata,
             parsing_method: parsingMethod,
             parsing_time: Date.now() - parsingStartTime,
             data_prep_time: Date.now() - dataPrepStartTime
