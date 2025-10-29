@@ -94,14 +94,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Start async processing (don't await)
-    processResumeAsync(resume.id, buffer, file.type, file.name).catch(error => {
+    processResumeAsync(resume.id, buffer, file.type, file.name).catch(async error => {
       console.error("Async processing error:", error);
       // Update status to failed
-      supabase
-        .from("resumes")
-        .update({ status: "failed" })
-        .eq("id", resume.id)
-        .catch(console.error);
+      try {
+        await supabase
+          .from("resumes")
+          .update({ status: "failed" })
+          .eq("id", resume.id);
+      } catch (updateError) {
+        console.error("Failed to update status to failed:", updateError);
+      }
     });
 
     // Return immediate response
