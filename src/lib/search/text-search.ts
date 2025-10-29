@@ -38,15 +38,26 @@ export async function searchResumesByText(
     .from("resume_summaries")
     .select(`
       id,
+      resume_id,
+      quick_id,
       full_name,
       email,
       phone,
       location,
       current_position,
       current_company,
+      last_position,
+      last_company,
       experience_years,
+      education_level,
+      primary_skills,
+      secondary_skills,
       skills,
-      summary
+      languages,
+      summary,
+      ai_summary,
+      quality_score,
+      confidence_score
     `);
 
   // Add text search conditions
@@ -93,10 +104,29 @@ export async function searchResumesByText(
     return [];
   }
 
-  // Calculate relevance scores
+  // Calculate relevance scores and format results
   const results = (data || []).map(resume => ({
-    ...resume,
+    id: resume.id,
+    resume_id: resume.resume_id,
+    quick_id: resume.quick_id,
+    full_name: resume.full_name,
+    email: resume.email,
+    phone: resume.phone,
+    location: resume.location,
+    current_position: resume.current_position,
+    current_company: resume.current_company,
+    last_position: resume.last_position,
+    last_company: resume.last_company,
+    experience_years: resume.experience_years,
+    education_level: resume.education_level,
+    primary_skills: resume.primary_skills || [],
+    secondary_skills: resume.secondary_skills || [],
     skills: resume.skills || [],
+    languages: resume.languages || [],
+    summary: resume.summary,
+    ai_summary: resume.ai_summary,
+    quality_score: resume.quality_score,
+    confidence_score: resume.confidence_score,
     score: calculateRelevanceScore(resume, query, filters)
   }));
 
@@ -118,7 +148,12 @@ function calculateRelevanceScore(
     resume.full_name,
     resume.current_position,
     resume.current_company,
+    resume.last_position,
+    resume.last_company,
     resume.summary,
+    resume.ai_summary,
+    ...(resume.primary_skills || []),
+    ...(resume.secondary_skills || []),
     ...(resume.skills || [])
   ].filter(field => field).map(field => field.toLowerCase());
 

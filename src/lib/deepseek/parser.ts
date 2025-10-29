@@ -193,52 +193,58 @@ export function extractSkills(parsedData: ParsedResume): string[] | null {
 }
 
 /**
- * Create summary data for quick access
+ * Create summary data for quick access (updated for new table structure)
  */
 export function createResumeSummary(parsedData: ParsedResume) {
   // Extract current position from experience
   const currentExperience = parsedData.experience?.find(exp => !exp.endDate) || parsedData.experience?.[0];
   
+  // Extract all skills and categorize them
+  const hardSkills = parsedData.professional.skills.hard || [];
+  const softSkills = parsedData.professional.skills.soft || [];
+  const toolSkills = parsedData.professional.skills.tools || [];
+  const allSkills = [...hardSkills, ...softSkills, ...toolSkills];
+  
+  // Determine primary (top-5) and secondary skills
+  const primarySkills = allSkills.slice(0, 5);
+  const secondarySkills = allSkills.slice(5);
+  
   // Extract languages
   const languages = parsedData.languages?.map(lang => `${lang.language} (${lang.level})`) || [];
   
-  // Extract key achievements
-  const keyAchievements = parsedData.experience
-    ?.flatMap(exp => exp.achievements || [])
-    .slice(0, 5) || []; // Top 5 achievements
-  
-  // Determine work type preferences (basic logic)
-  const workType = [];
-  if (parsedData.personal.location?.toLowerCase().includes('remote') || 
-      parsedData.professional.summary?.toLowerCase().includes('remote')) {
-    workType.push('remote');
-  }
-  if (parsedData.professional.summary?.toLowerCase().includes('office') ||
-      parsedData.professional.summary?.toLowerCase().includes('офис')) {
-    workType.push('office');
-  }
-  if (workType.length === 0) {
-    workType.push('hybrid'); // Default
-  }
-
-  const extractedSkills = extractSkills(parsedData);
+  // Calculate quality score
+  const qualityScore = calculateQualityScore(parsedData);
   
   return {
+    // Basic Info
     full_name: parsedData.personal.fullName || '',
     email: parsedData.personal.email || '',
     phone: parsedData.personal.phone || '',
     location: parsedData.personal.location || '',
+    
+    // Professional Info
     current_position: currentExperience?.position || parsedData.professional.title || '',
     current_company: currentExperience?.company || '',
+    last_position: currentExperience?.position || '',
+    last_company: currentExperience?.company || '',
     experience_years: parsedData.professional.totalExperience || 0,
     education_level: parsedData.education?.[0]?.degree || '',
-    skills: extractedSkills && extractedSkills.length > 0 ? extractedSkills : null,
-    languages: languages.length > 0 ? languages : null,
-    salary_expectation: '', // Will be extracted by AI if mentioned
-    availability: 'immediately', // Default
-    work_type: workType.length > 0 ? workType : null,
+    
+    // Skills Analysis
+    primary_skills: primarySkills,
+    secondary_skills: secondarySkills,
+    skills: allSkills,
+    
+    // Additional Info
+    languages: languages,
     summary: parsedData.professional.summary || '',
-    key_achievements: keyAchievements.length > 0 ? keyAchievements : null
+    ai_summary: parsedData.professional.summary || '',
+    
+    // Quality and Metadata
+    quality_score: qualityScore,
+    confidence_score: 0.95, // High confidence for AI parsing
+    consent_given: true,
+    expires_at: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString() // 180 days
   };
 }
 

@@ -175,11 +175,16 @@ export async function POST(request: NextRequest) {
     console.log("Creating resume summary...");
     const summaryData = createResumeSummary(parsedData);
     
-    // Insert summary into resume_summaries table
+    // Generate unique quick_id
+    const quickId = `RES-${Date.now()}-${resume.id.substring(0, 8)}`;
+    
+    // Insert summary into resume_summaries table with new structure
     const { error: summaryError } = await supabase
       .from("resume_summaries")
       .insert({
         resume_id: resume.id,
+        quick_id: quickId,
+        upload_token: uploadToken,
         ...summaryData
       });
 
