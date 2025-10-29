@@ -46,6 +46,36 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
 }
 
 /**
+ * Extract text from DOC file (old Word format)
+ * Note: DOC files are more complex than DOCX, we'll try plain text extraction
+ */
+export async function extractTextFromDOC(buffer: Buffer): Promise<string> {
+  try {
+    console.log("Attempting to extract text from DOC file...");
+    
+    // DOC files are binary and harder to parse than DOCX
+    // Try to extract readable text from the binary data
+    const textContent = buffer.toString("utf-8");
+    
+    // Look for readable text patterns in the binary data
+    const readableText = textContent
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, ' ') // Remove control characters
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+    
+    if (readableText && readableText.length > 50) {
+      console.log(`DOC text extraction successful, length: ${readableText.length}`);
+      return readableText;
+    }
+    
+    throw new Error("Could not extract readable text from DOC file");
+  } catch (error) {
+    console.error("Error parsing DOC:", error);
+    throw new Error("Failed to extract text from DOC file. Please try converting to DOCX or PDF format.");
+  }
+}
+
+/**
  * Extract text from DOCX file
  * Note: mammoth works in Node.js environment (API routes)
  */
@@ -93,26 +123,28 @@ export async function extractTextFromFile(
 ): Promise<string> {
   console.log(`Extracting text from file: ${fileName}, mimeType: ${mimeType}, size: ${buffer.length}`);
   
-  // Handle application/octet-stream by trying different parsers
+  // Handle application/octet-stream by trying different parsers based on file extension
   if (mimeType === "application/octet-stream" && fileName) {
     const ext = fileName.toLowerCase().split('.').pop();
     console.log(`Detected file extension: ${ext}`);
     if (ext === 'pdf') {
       return extractTextFromPDF(buffer);
-    } else if (ext === 'docx' || ext === 'doc') {
+    } else if (ext === 'docx') {
       return extractTextFromDOCX(buffer);
+    } else if (ext === 'doc') {
+      return extractTextFromDOC(buffer);
     } else if (ext === 'txt') {
       return buffer.toString("utf-8");
     }
   }
   
+  // Handle specific MIME types
   if (mimeType === "application/pdf") {
     return extractTextFromPDF(buffer);
-  } else if (
-    mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-    mimeType === "application/msword"
-  ) {
+  } else if (mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
     return extractTextFromDOCX(buffer);
+  } else if (mimeType === "application/msword") {
+    return extractTextFromDOC(buffer);
   } else if (mimeType.startsWith("text/")) {
     return buffer.toString("utf-8");
   } else {
@@ -141,21 +173,23 @@ export function validateFileSize(size: number): boolean {
 export function validateFileType(mimeType: string, fileName?: string): boolean {
   const ALLOWED_TYPES = [
     "application/pdf",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/msword",
-    "text/plain",
-    "application/octet-stream", // Sometimes DOCX files are detected as this
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // DOCX
+    "application/msword", // DOC
+    "text/plain", // TXT
+    "text/txt", // Alternative TXT MIME type
+    "application/octet-stream", // Sometimes files are detected as this
   ];
   
-  // Check mime type
+  // Check mime type first
   if (ALLOWED_TYPES.includes(mimeType)) {
     return true;
   }
   
-  // Fallback to file extension check
+  // Fallback to file extension check for better compatibility
   if (fileName) {
     const ext = fileName.toLowerCase().split('.').pop();
-    return ['pdf', 'docx', 'doc', 'txt'].includes(ext || '');
+    const allowedExtensions = ['pdf', 'docx', 'doc', 'txt'];
+    return allowedExtensions.includes(ext || '');
   }
   
   return false;
@@ -170,6 +204,7 @@ export function getFileExtension(mimeType: string): string {
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
     "application/msword": "doc",
     "text/plain": "txt",
+    "text/txt": "txt",
   };
   return extensions[mimeType] || "bin";
 }
