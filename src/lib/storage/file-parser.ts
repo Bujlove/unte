@@ -3,12 +3,39 @@
  */
 
 /**
- * Extract text from PDF file
- * Note: pdf-parse works in Node.js environment (API routes)
+ * Extract text from PDF file using PDF.js (better quality)
  */
 export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   try {
-    // Dynamic import to avoid issues in client-side
+    // Try PDF.js first (better quality)
+    const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    
+    const loadingTask = pdfjsLib.getDocument({
+      data: buffer,
+      useSystemFonts: true,
+    });
+    
+    const pdf = await loadingTask.promise;
+    let fullText = "";
+    
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(" ");
+      fullText += pageText + "\n";
+    }
+    
+    if (fullText.trim().length > 0) {
+      return fullText.trim();
+    }
+  } catch (error) {
+    console.log("PDF.js failed, trying pdf-parse fallback:", error);
+  }
+  
+  try {
+    // Fallback to pdf-parse
     const pdfParse = (await import("pdf-parse")).default;
     const data = await pdfParse(buffer);
     return data.text;

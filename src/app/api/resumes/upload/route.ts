@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { validateFileSize, validateFileType, extractTextFromFile } from "@/lib/storage/file-parser";
 import { parseResumeTextWithRetry, calculateQualityScore, extractSkills, createResumeSummary } from "@/lib/deepseek/parser";
-// Removed embeddings import - using text search instead
+import { generateResumeEmbedding, generateSummaryEmbedding, embeddingToVector } from "@/lib/deepseek/embeddings";
 import { generateToken } from "@/lib/utils";
 import { nanoid } from "nanoid";
 
@@ -75,7 +75,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Skip embeddings - using text search instead
+    // Generate embeddings
+    const embedding = await generateResumeEmbedding(parsedData);
+    const summaryEmbedding = await generateSummaryEmbedding(parsedData);
 
     // Calculate quality score
     const qualityScore = calculateQualityScore(parsedData);
@@ -123,8 +125,8 @@ export async function POST(request: NextRequest) {
         last_company: parsedData.experience[0]?.company || null,
         education_level: parsedData.education[0]?.degree || null,
         languages: parsedData.languages.length > 0 ? parsedData.languages as any : null,
-        embedding: null, // Using text search instead of embeddings
-        summary_embedding: null, // Using text search instead of embeddings
+        embedding: embeddingToVector(embedding),
+        summary_embedding: embeddingToVector(summaryEmbedding),
         status: "active",
         quality_score: qualityScore,
         upload_token: uploadToken,

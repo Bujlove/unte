@@ -94,7 +94,21 @@ export default function DashboardPage() {
     setSearching(true);
 
     try {
-      // Convert requirements to search query and filters
+      // Try semantic search first
+      const semanticResponse = await fetch("/api/search/semantic", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requirements }),
+      });
+
+      const semanticData = await semanticResponse.json();
+
+      if (semanticData.success && semanticData.results.length > 0) {
+        setSearchResults(semanticData.results);
+        return;
+      }
+
+      // Fallback to text search
       const query = requirements.position || requirements.query || "кандидат";
       const filters = {
         position: requirements.position,
