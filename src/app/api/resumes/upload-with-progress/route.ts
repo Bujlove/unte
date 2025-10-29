@@ -175,6 +175,7 @@ export async function POST(request: NextRequest) {
     console.log("💾 Загружаем файл в хранилище...");
     const storageStartTime = Date.now();
     
+    let fileUrl: string;
     try {
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
       const fileName = `${resumeId}-${sanitizedFileName}`;
@@ -190,7 +191,7 @@ export async function POST(request: NextRequest) {
         throw new Error(`Ошибка загрузки в хранилище: ${uploadError.message}`);
       }
 
-      const fileUrl = supabase.storage.from("resumes").getPublicUrl(fileName).data.publicUrl;
+      fileUrl = supabase.storage.from("resumes").getPublicUrl(fileName).data.publicUrl;
       
       // Обновляем запись с URL файла
       await supabase
