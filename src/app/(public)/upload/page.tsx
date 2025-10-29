@@ -111,10 +111,32 @@ export default function UploadPage() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
+      // PDF types
       "application/pdf": [".pdf"],
+      "application/x-pdf": [".pdf"],
+      "application/acrobat": [".pdf"],
+      "text/pdf": [".pdf"],
+      
+      // DOCX types
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.template": [".docx"],
+      "application/zip": [".docx"], // Sometimes DOCX is detected as ZIP
+      
+      // DOC types
       "application/msword": [".doc"],
+      "application/vnd.ms-word": [".doc"],
+      "application/x-msword": [".doc"],
+      
+      // Text types
       "text/plain": [".txt"],
+      "text/txt": [".txt"],
+      "text/rtf": [".rtf"],
+      "application/rtf": [".rtf"],
+      
+      // Generic types (will be validated by file extension)
+      "application/octet-stream": [".pdf", ".docx", ".doc", ".txt", ".rtf"],
+      "application/binary": [".pdf", ".docx", ".doc", ".txt", ".rtf"],
+      "application/x-binary": [".pdf", ".docx", ".doc", ".txt", ".rtf"],
     },
     maxSize: 10 * 1024 * 1024, // 10MB
     multiple: false,
@@ -154,9 +176,9 @@ export default function UploadPage() {
                   <p className="text-xl font-semibold text-gray-700">
                     Перетащите резюме сюда или нажмите для выбора
                   </p>
-                  <p className="text-sm text-gray-500">
-                    Поддерживаемые форматы: PDF, DOCX, DOC, TXT (макс. 10MB)
-                  </p>
+                      <p className="text-sm text-gray-500">
+                        Поддерживаемые форматы: PDF, DOCX, DOC, TXT, RTF (макс. 10MB)
+                      </p>
                 </>
               )}
             </div>

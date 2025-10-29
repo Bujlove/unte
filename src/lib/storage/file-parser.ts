@@ -115,6 +115,7 @@ export async function extractTextFromDOCX(buffer: Buffer): Promise<string> {
 
 /**
  * Extract text from file based on mime type
+ * Enhanced to handle multiple MIME types and better fallback logic
  */
 export async function extractTextFromFile(
   buffer: Buffer,
@@ -123,40 +124,86 @@ export async function extractTextFromFile(
 ): Promise<string> {
   console.log(`Extracting text from file: ${fileName}, mimeType: ${mimeType}, size: ${buffer.length}`);
   
-  // Handle application/octet-stream by trying different parsers based on file extension
-  if (mimeType === "application/octet-stream" && fileName) {
-    const ext = fileName.toLowerCase().split('.').pop();
-    console.log(`Detected file extension: ${ext}`);
+  // Helper function to get file extension
+  const getExtension = (fileName?: string): string => {
+    if (!fileName) return '';
+    return fileName.toLowerCase().split('.').pop() || '';
+  };
+  
+  // Handle generic binary types by trying different parsers based on file extension
+  const genericTypes = [
+    "application/octet-stream",
+    "application/binary", 
+    "application/x-binary"
+  ];
+  
+  if (genericTypes.includes(mimeType) && fileName) {
+    const ext = getExtension(fileName);
+    console.log(`Generic binary type detected, file extension: ${ext}`);
+    
     if (ext === 'pdf') {
       return extractTextFromPDF(buffer);
     } else if (ext === 'docx') {
       return extractTextFromDOCX(buffer);
     } else if (ext === 'doc') {
       return extractTextFromDOC(buffer);
-    } else if (ext === 'txt') {
+    } else if (ext === 'txt' || ext === 'rtf') {
       return buffer.toString("utf-8");
     }
   }
   
-  // Handle specific MIME types
-  if (mimeType === "application/pdf") {
+  // Handle PDF types
+  if (mimeType === "application/pdf" || 
+      mimeType === "application/x-pdf" || 
+      mimeType === "application/acrobat" || 
+      mimeType === "text/pdf") {
     return extractTextFromPDF(buffer);
-  } else if (mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-    return extractTextFromDOCX(buffer);
-  } else if (mimeType === "application/msword") {
-    return extractTextFromDOC(buffer);
-  } else if (mimeType.startsWith("text/")) {
-    return buffer.toString("utf-8");
-  } else {
-    // Try to extract as plain text as last resort
-    console.log(`Unknown file type ${mimeType}, trying plain text extraction`);
-    const textContent = buffer.toString("utf-8");
-    if (textContent && textContent.length > 50) {
-      console.log(`Plain text extraction successful, length: ${textContent.length}`);
-      return textContent;
-    }
-    throw new Error(`Unsupported file type: ${mimeType}`);
   }
+  
+  // Handle DOCX types
+  if (mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.template" ||
+      (mimeType === "application/zip" && getExtension(fileName) === 'docx')) {
+    return extractTextFromDOCX(buffer);
+  }
+  
+  // Handle DOC types
+  if (mimeType === "application/msword" || 
+      mimeType === "application/vnd.ms-word" || 
+      mimeType === "application/x-msword") {
+    return extractTextFromDOC(buffer);
+  }
+  
+  // Handle text types
+  if (mimeType.startsWith("text/") || mimeType === "application/rtf") {
+    return buffer.toString("utf-8");
+  }
+  
+  // Fallback: try to determine by file extension if MIME type is unknown
+  if (fileName) {
+    const ext = getExtension(fileName);
+    console.log(`Unknown MIME type ${mimeType}, trying by extension: ${ext}`);
+    
+    if (ext === 'pdf') {
+      return extractTextFromPDF(buffer);
+    } else if (ext === 'docx') {
+      return extractTextFromDOCX(buffer);
+    } else if (ext === 'doc') {
+      return extractTextFromDOC(buffer);
+    } else if (ext === 'txt' || ext === 'rtf') {
+      return buffer.toString("utf-8");
+    }
+  }
+  
+  // Last resort: try plain text extraction
+  console.log(`Unknown file type ${mimeType}, trying plain text extraction`);
+  const textContent = buffer.toString("utf-8");
+  if (textContent && textContent.length > 50) {
+    console.log(`Plain text extraction successful, length: ${textContent.length}`);
+    return textContent;
+  }
+  
+  throw new Error(`Unsupported file type: ${mimeType}. Supported formats: PDF, DOCX, DOC, TXT`);
 }
 
 /**
@@ -169,15 +216,37 @@ export function validateFileSize(size: number): boolean {
 
 /**
  * Validate file type (PDF, DOCX, DOC, TXT)
+ * More flexible validation that accepts multiple MIME types and extensions
  */
 export function validateFileType(mimeType: string, fileName?: string): boolean {
+  // Extended list of allowed MIME types
   const ALLOWED_TYPES = [
+    // PDF types
     "application/pdf",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // DOCX
-    "application/msword", // DOC
-    "text/plain", // TXT
-    "text/txt", // Alternative TXT MIME type
+    "application/x-pdf",
+    "application/acrobat",
+    "text/pdf",
+    
+    // DOCX types
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.template",
+    "application/zip", // Sometimes DOCX is detected as ZIP
+    
+    // DOC types
+    "application/msword",
+    "application/vnd.ms-word",
+    "application/x-msword",
+    
+    // TXT types
+    "text/plain",
+    "text/txt",
+    "text/rtf",
+    "application/rtf",
+    
+    // Generic types that might contain our supported formats
     "application/octet-stream", // Sometimes files are detected as this
+    "application/binary",
+    "application/x-binary",
   ];
   
   // Check mime type first
@@ -188,7 +257,7 @@ export function validateFileType(mimeType: string, fileName?: string): boolean {
   // Fallback to file extension check for better compatibility
   if (fileName) {
     const ext = fileName.toLowerCase().split('.').pop();
-    const allowedExtensions = ['pdf', 'docx', 'doc', 'txt'];
+    const allowedExtensions = ['pdf', 'docx', 'doc', 'txt', 'rtf'];
     return allowedExtensions.includes(ext || '');
   }
   
@@ -197,14 +266,31 @@ export function validateFileType(mimeType: string, fileName?: string): boolean {
 
 /**
  * Get file extension from mime type
+ * Enhanced to support multiple MIME types
  */
 export function getFileExtension(mimeType: string): string {
   const extensions: Record<string, string> = {
+    // PDF types
     "application/pdf": "pdf",
+    "application/x-pdf": "pdf",
+    "application/acrobat": "pdf",
+    "text/pdf": "pdf",
+    
+    // DOCX types
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.template": "docx",
+    "application/zip": "docx", // When DOCX is detected as ZIP
+    
+    // DOC types
     "application/msword": "doc",
+    "application/vnd.ms-word": "doc",
+    "application/x-msword": "doc",
+    
+    // Text types
     "text/plain": "txt",
     "text/txt": "txt",
+    "text/rtf": "rtf",
+    "application/rtf": "rtf",
   };
   return extensions[mimeType] || "bin";
 }
