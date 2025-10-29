@@ -6,20 +6,16 @@ import Link from "next/link";
 
 export default function UploadPage() {
   const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [result, setResult] = useState<{
     success: boolean;
     message: string;
     uploadToken?: string;
-    summary?: {
-      fullName: string;
-      position: string;
-      company: string;
-      experience: number;
-      skills: string[];
-      location: string;
-    };
+    resumeId?: string;
+  } | null>(null);
+  const [processingStatus, setProcessingStatus] = useState<{
+    status: 'processing' | 'active' | 'failed';
+    resume?: any;
   } | null>(null);
 
   const onDrop = useCallback(
@@ -39,41 +35,39 @@ export default function UploadPage() {
     }
 
     setUploading(true);
-    setProgress(10);
     setResult(null);
+    setProcessingStatus(null);
 
     try {
       const formData = new FormData();
       formData.append("file", selectedFile);
       formData.append("consent", "true");
 
-      setProgress(30);
-
-      const response = await fetch("/api/resumes/upload", {
+      const response = await fetch("/api/resumes/upload-async", {
         method: "POST",
         body: formData,
       });
 
-      setProgress(80);
-
       const data = await response.json();
 
-      setProgress(100);
-
-        if (data.success) {
-          setResult({
-            success: true,
-            message: data.message,
-            uploadToken: data.uploadToken,
-            summary: data.summary,
-          });
-          setSelectedFile(null);
-        } else {
-          setResult({
-            success: false,
-            message: data.error || "Произошла ошибка при загрузке",
-          });
-        }
+      if (data.success) {
+        setResult({
+          success: true,
+          message: data.message,
+          uploadToken: data.uploadToken,
+          resumeId: data.resumeId,
+        });
+        setProcessingStatus({ status: 'processing' });
+        setSelectedFile(null);
+        
+        // Start polling for status updates
+        pollStatus(data.resumeId);
+      } else {
+        setResult({
+          success: false,
+          message: data.error || "Произошла ошибка при загрузке",
+        });
+      }
     } catch (error) {
       setResult({
         success: false,
@@ -81,8 +75,37 @@ export default function UploadPage() {
       });
     } finally {
       setUploading(false);
-      setTimeout(() => setProgress(0), 1000);
     }
+  };
+
+  const pollStatus = async (resumeId: string) => {
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/resumes/status/${resumeId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          setProcessingStatus({
+            status: data.resume.status,
+            resume: data.resume
+          });
+          
+          // Stop polling if processing is complete
+          if (data.resume.status === 'active' || data.resume.status === 'failed') {
+            return;
+          }
+        }
+        
+        // Continue polling if still processing
+        if (processingStatus?.status === 'processing') {
+          setTimeout(poll, 2000); // Poll every 2 seconds
+        }
+      } catch (error) {
+        console.error('Status polling error:', error);
+      }
+    };
+    
+    poll();
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -200,20 +223,27 @@ export default function UploadPage() {
             )}
           </div>
 
-          {uploading && (
+          {processingStatus && (
             <div className="mt-6">
-              <div className="flex justify-between text-sm text-gray-600 mb-2">
-                <span>Обработка резюме...</span>
-                <span>{progress}%</span>
+              <div className="flex items-center justify-center space-x-2 mb-4">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                <span className="text-sm text-gray-600">
+                  {processingStatus.status === 'processing' && 'Обрабатываем резюме...'}
+                  {processingStatus.status === 'active' && 'Резюме успешно обработано!'}
+                  {processingStatus.status === 'failed' && 'Ошибка обработки резюме'}
+                </span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                <div
-                  className="bg-primary h-full transition-all duration-300"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
+              
+              {processingStatus.status === 'processing' && (
+                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                  <div className="bg-primary h-full animate-pulse" style={{ width: '100%' }} />
+                </div>
+              )}
+              
               <p className="text-xs text-gray-500 mt-2 text-center">
-                Анализируем ваш опыт и навыки с помощью AI
+                {processingStatus.status === 'processing' && 'AI анализирует ваш опыт и навыки...'}
+                {processingStatus.status === 'active' && 'Ваше резюме готово к поиску!'}
+                {processingStatus.status === 'failed' && 'Попробуйте загрузить резюме снова'}
               </p>
             </div>
           )}
@@ -237,39 +267,33 @@ export default function UploadPage() {
                 {result.message}
               </p>
               
-              {result.success && result.summary && (
+              {result.success && processingStatus?.status === 'active' && processingStatus.resume && (
                 <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
                   <h3 className="font-semibold text-green-800 mb-3">Извлеченные данные:</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                     <div>
                       <span className="font-medium text-gray-700">Имя:</span>
-                      <span className="ml-2 text-gray-900">{result.summary.fullName || "Не указано"}</span>
+                      <span className="ml-2 text-gray-900">{processingStatus.resume.fullName || "Не указано"}</span>
                     </div>
                     <div>
                       <span className="font-medium text-gray-700">Должность:</span>
-                      <span className="ml-2 text-gray-900">{result.summary.position || "Не указано"}</span>
+                      <span className="ml-2 text-gray-900">{processingStatus.resume.lastPosition || "Не указано"}</span>
                     </div>
                     <div>
                       <span className="font-medium text-gray-700">Компания:</span>
-                      <span className="ml-2 text-gray-900">{result.summary.company || "Не указано"}</span>
+                      <span className="ml-2 text-gray-900">{processingStatus.resume.lastCompany || "Не указано"}</span>
                     </div>
                     <div>
                       <span className="font-medium text-gray-700">Опыт:</span>
-                      <span className="ml-2 text-gray-900">{result.summary.experience} лет</span>
+                      <span className="ml-2 text-gray-900">{processingStatus.resume.experienceYears || 0} лет</span>
                     </div>
                     <div>
                       <span className="font-medium text-gray-700">Локация:</span>
-                      <span className="ml-2 text-gray-900">{result.summary.location || "Не указано"}</span>
+                      <span className="ml-2 text-gray-900">{processingStatus.resume.location || "Не указано"}</span>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-700">Навыки:</span>
-                      <div className="ml-2 flex flex-wrap gap-1">
-                        {result.summary.skills.map((skill, idx) => (
-                          <span key={idx} className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
+                      <span className="font-medium text-gray-700">Качество:</span>
+                      <span className="ml-2 text-gray-900">{processingStatus.resume.qualityScore || 0}%</span>
                     </div>
                   </div>
                 </div>
