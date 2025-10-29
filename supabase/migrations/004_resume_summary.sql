@@ -36,25 +36,17 @@ ALTER TABLE resume_summaries ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can read resume summaries" ON resume_summaries
     FOR SELECT USING (true);
 
--- Политика для вставки - только авторизованные пользователи
-CREATE POLICY "Authenticated users can insert resume summaries" ON resume_summaries
-    FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+-- Политика для вставки - все могут вставлять (для анонимных резюме)
+CREATE POLICY "Anyone can insert resume summaries" ON resume_summaries
+    FOR INSERT WITH CHECK (true);
 
--- Политика для обновления - только владелец резюме
-CREATE POLICY "Users can update their resume summaries" ON resume_summaries
-    FOR UPDATE USING (
-        resume_id IN (
-            SELECT id FROM resumes WHERE user_id = auth.uid()
-        )
-    );
+-- Политика для обновления - все могут обновлять (для анонимных резюме)
+CREATE POLICY "Anyone can update resume summaries" ON resume_summaries
+    FOR UPDATE USING (true);
 
--- Политика для удаления - только владелец резюме
-CREATE POLICY "Users can delete their resume summaries" ON resume_summaries
-    FOR DELETE USING (
-        resume_id IN (
-            SELECT id FROM resumes WHERE user_id = auth.uid()
-        )
-    );
+-- Политика для удаления - все могут удалять (для анонимных резюме)
+CREATE POLICY "Anyone can delete resume summaries" ON resume_summaries
+    FOR DELETE USING (true);
 
 -- Функция для автоматического создания summary при создании резюме
 CREATE OR REPLACE FUNCTION create_resume_summary()
