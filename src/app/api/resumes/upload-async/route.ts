@@ -132,22 +132,102 @@ async function processResumeSimple(resumeId: string) {
   try {
     console.log(`Starting simple processing for resume ${resumeId}`);
     
-    // Call the processing endpoint
-    const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/resumes/process`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ resumeId })
-    });
+    // Import processing functions directly
+    const { createAdminClient } = await import("@/lib/supabase/server");
+    const { extractTextFromFile } = await import("@/lib/storage/file-parser");
+    const { detectFileType, extractSimpleData, calculateSimpleQualityScore } = await import("@/lib/simple-parser");
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Processing failed');
+    const supabase = await createAdminClient();
+    
+    // Get resume data
+    const { data: resume, error: fetchError } = await supabase
+      .from("resumes")
+      .select("*")
+      .eq("id", resumeId)
+      .single();
+
+    if (fetchError || !resume) {
+      throw new Error("Resume not found");
     }
 
-    const result = await response.json();
-    console.log(`Resume ${resumeId} processed successfully:`, result.data);
+    if (resume.status !== "processing") {
+      throw new Error("Resume is not in processing state");
+    }
+
+    // Download file from storage
+    const fileName = resume.file_url?.split('/').pop();
+    if (!fileName) {
+      throw new Error("File not found in storage");
+    }
+
+    const { data: fileData, error: downloadError } = await supabase.storage
+      .from("resumes")
+      .download(fileName);
+
+    if (downloadError || !fileData) {
+      throw new Error("Failed to download file");
+    }
+
+    // Convert to buffer
+    const arrayBuffer = await fileData.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Step 1: Detect file type
+    const fileType = detectFileType(resume.file_name, resume.mime_type);
+    console.log(`Detected file type: ${fileType}`);
+
+    // Step 2: Extract text based on file type
+    let text: string;
+    try {
+      text = await extractTextFromFile(buffer, resume.mime_type, resume.file_name);
+    } catch (error) {
+      console.error("Text extraction failed:", error);
+      throw new Error("Failed to extract text from file");
+    }
+
+    if (!text || text.length < 50) {
+      throw new Error("File appears to be empty or corrupted");
+    }
+
+    // Step 3: Extract key data using simple parser
+    const extractedData = extractSimpleData(text);
+    console.log("Extracted data:", extractedData);
+
+    // Step 4: Calculate quality score
+    const qualityScore = calculateSimpleQualityScore(extractedData);
+
+    // Step 5: Update resume with extracted data
+    const { error: updateError } = await supabase
+      .from("resumes")
+      .update({
+        full_name: extractedData.fullName,
+        email: extractedData.email,
+        phone: extractedData.phone,
+        location: extractedData.location,
+        last_position: extractedData.position,
+        last_company: extractedData.company,
+        experience_years: extractedData.experience,
+        education_level: extractedData.education,
+        skills: extractedData.skills.length > 0 ? extractedData.skills : null,
+        quality_score: qualityScore,
+        status: "active",
+        updated_at: new Date().toISOString(),
+        // Store raw text for future AI processing if needed
+        parsed_data: {
+          raw_text: text,
+          file_type: fileType,
+          extracted_data: extractedData,
+          extraction_method: "simple_regex"
+        }
+      })
+      .eq("id", resumeId);
+
+    if (updateError) {
+      console.error("Database update error:", updateError);
+      throw updateError;
+    }
+
+    console.log(`Resume ${resumeId} processed successfully`);
 
   } catch (error) {
     console.error(`Simple processing failed for resume ${resumeId}:`, error);
