@@ -44,6 +44,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Function to check for duplicate resumes
+DROP FUNCTION IF EXISTS check_duplicate_resume(TEXT, TEXT);
 CREATE OR REPLACE FUNCTION check_duplicate_resume(
     check_email TEXT DEFAULT NULL,
     check_phone TEXT DEFAULT NULL
