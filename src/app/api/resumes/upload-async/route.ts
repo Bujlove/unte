@@ -135,7 +135,8 @@ async function processResumeSimple(resumeId: string) {
     // Import processing functions directly
     const { createAdminClient } = await import("@/lib/supabase/server");
     const { extractTextFromFile } = await import("@/lib/storage/file-parser");
-    const { detectFileType, extractSimpleData, calculateSimpleQualityScore } = await import("@/lib/simple-parser");
+    const { detectFileType } = await import("@/lib/simple-parser");
+    const { parseResumeWithDeepSeek, createFallbackResume } = await import("@/lib/enhanced-parser");
 
     const supabase = await createAdminClient();
     
@@ -189,12 +190,17 @@ async function processResumeSimple(resumeId: string) {
       throw new Error("File appears to be empty or corrupted");
     }
 
-    // Step 3: Extract key data using simple parser
-    const extractedData = extractSimpleData(text);
-    console.log("Extracted data:", extractedData);
-
-    // Step 4: Calculate quality score
-    const qualityScore = calculateSimpleQualityScore(extractedData);
+    // Step 3: Extract data using enhanced DeepSeek parser
+    let extractedData;
+    try {
+      console.log("Using DeepSeek AI for enhanced parsing...");
+      extractedData = await parseResumeWithDeepSeek(text);
+      console.log("DeepSeek parsing successful:", extractedData);
+    } catch (error) {
+      console.error("DeepSeek parsing failed, using fallback:", error);
+      extractedData = createFallbackResume(text);
+      console.log("Fallback parsing result:", extractedData);
+    }
 
     // Step 5: Update resume with extracted data
     const { error: updateError } = await supabase
@@ -204,20 +210,25 @@ async function processResumeSimple(resumeId: string) {
         email: extractedData.email,
         phone: extractedData.phone,
         location: extractedData.location,
-        last_position: extractedData.position,
-        last_company: extractedData.company,
-        experience_years: extractedData.experience,
-        education_level: extractedData.education,
-        skills: extractedData.skills.length > 0 ? extractedData.skills : null,
-        quality_score: qualityScore,
+        last_position: extractedData.lastPosition,
+        last_company: extractedData.lastCompany,
+        experience_years: extractedData.experienceYears,
+        education_level: extractedData.educationLevel,
+        skills: extractedData.skills,
+        languages: extractedData.languages ? JSON.stringify(extractedData.languages) : null,
+        quality_score: extractedData.qualityScore,
         status: "active",
         updated_at: new Date().toISOString(),
-        // Store raw text for future AI processing if needed
+        // Store comprehensive parsed data
         parsed_data: {
           raw_text: text,
           file_type: fileType,
           extracted_data: extractedData,
-          extraction_method: "simple_regex"
+          extraction_method: "deepseek_ai",
+          summary: extractedData.summary,
+          achievements: extractedData.achievements,
+          certifications: extractedData.certifications,
+          projects: extractedData.projects
         }
       })
       .eq("id", resumeId);

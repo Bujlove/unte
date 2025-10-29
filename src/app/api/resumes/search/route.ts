@@ -25,7 +25,9 @@ export async function POST(request: NextRequest) {
         experience_years,
         education_level,
         skills,
+        languages,
         quality_score,
+        parsed_data,
         created_at
       `)
       .eq("status", "active");
