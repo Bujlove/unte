@@ -231,8 +231,8 @@ export function createResumeSummary(parsedData: ParsedResume) {
     current_position: currentExperience?.position || parsedData.professional.title || '',
     current_company: currentExperience?.company || '',
     experience_years: parsedData.professional.totalExperience || 0,
-    education_level: parsedData.education[0]?.degree || '',
-    skills: extractedSkills.length > 0 ? extractedSkills : null,
+    education_level: parsedData.education?.[0]?.degree || '',
+    skills: extractedSkills && extractedSkills.length > 0 ? extractedSkills : null,
     languages: languages.length > 0 ? languages : null,
     salary_expectation: '', // Will be extracted by AI if mentioned
     availability: 'immediately', // Default
@@ -331,8 +331,8 @@ export async function parseResumeTextWithRetry(text: string, maxRetries: number 
       
       // Validate that we got some meaningful data (more flexible)
       const hasPersonalInfo = result.personal.fullName || result.personal.email || result.personal.phone;
-      const hasProfessionalInfo = result.professional.title || result.professional.skills.hard.length > 0 || result.experience.length > 0;
-      const hasAnyData = hasPersonalInfo || hasProfessionalInfo || result.education.length > 0;
+      const hasProfessionalInfo = result.professional.title || result.professional.skills.hard.length > 0 || (result.experience && result.experience.length > 0);
+      const hasAnyData = hasPersonalInfo || hasProfessionalInfo || (result.education && result.education.length > 0);
       
       if (!hasAnyData) {
         throw new Error('No meaningful data extracted');
