@@ -1,9 +1,6 @@
 import { TikaHttpClient } from 'tika-client';
 
-const tikaClient = new TikaHttpClient({
-  host: 'localhost',
-  port: 9998
-});
+const tikaClient = new TikaHttpClient('http://localhost:9998');
 
 export interface TikaExtractionResult {
   text: string;
