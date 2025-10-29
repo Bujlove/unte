@@ -39,7 +39,7 @@ export async function processChatMessage(
 
 Текущие требования из диалога:
 - Должность: ${currentRequirements.position || 'не указана'}
-- Навыки: ${currentRequirements.skills.length > 0 ? currentRequirements.skills.join(', ') : 'не указаны'}
+- Навыки: ${currentRequirements.skills && currentRequirements.skills.length > 0 ? currentRequirements.skills.join(', ') : 'не указаны'}
 - Опыт: ${currentRequirements.experienceYears ? `${currentRequirements.experienceYears.min || 0}-${currentRequirements.experienceYears.max || '∞'} лет` : 'не указан'}
 - Локация: ${currentRequirements.location || 'не указана'}
 - Образование: ${currentRequirements.educationLevel || 'не указано'}
