@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
         position: summaryData.current_position,
         company: summaryData.current_company,
         experience: summaryData.experience_years,
-        skills: summaryData.skills.slice(0, 5), // Top 5 skills
+        skills: summaryData.skills?.slice(0, 5) || [], // Top 5 skills
         location: summaryData.location
       }
     });
