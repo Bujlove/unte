@@ -124,7 +124,9 @@ export async function POST(request: NextRequest) {
     console.log(`✅ Запись резюме создана: ${resumeId}`);
 
     // Обновляем статус на "обработка"
-    await updateProcessingStatus(supabase, resumeId, 'processing', 'file_validation');
+    if (resumeId) {
+      await updateProcessingStatus(supabase, resumeId, 'processing', 'file_validation');
+    }
 
     // Извлечение текста из файла
     console.log("📖 Извлекаем текст из файла...");
@@ -138,7 +140,9 @@ export async function POST(request: NextRequest) {
       }
 
       console.log(`✅ Текст извлечен, длина: ${text.length} символов`);
-      await updateProcessingStatus(supabase, resumeId, 'processing', 'text_extraction');
+      if (resumeId) {
+        await updateProcessingStatus(supabase, resumeId, 'processing', 'text_extraction');
+      }
       
       // Обновляем метаданные с информацией о тексте
       await supabase
@@ -154,7 +158,9 @@ export async function POST(request: NextRequest) {
 
     } catch (textError) {
       console.error("❌ Ошибка извлечения текста:", textError);
-      await updateProcessingStatus(supabase, resumeId, 'failed', 'text_extraction', textError.message);
+      if (resumeId) {
+        await updateProcessingStatus(supabase, resumeId, 'failed', 'text_extraction', textError.message);
+      }
       
       return NextResponse.json({
         success: false,
@@ -197,11 +203,15 @@ export async function POST(request: NextRequest) {
         .eq('id', resumeId);
 
       console.log("✅ Файл загружен в хранилище");
-      await updateProcessingStatus(supabase, resumeId, 'processing', 'file_storage');
+      if (resumeId) {
+        await updateProcessingStatus(supabase, resumeId, 'processing', 'file_storage');
+      }
 
     } catch (storageError) {
       console.error("❌ Ошибка загрузки файла:", storageError);
-      await updateProcessingStatus(supabase, resumeId, 'failed', 'file_storage', storageError.message);
+        if (resumeId) {
+          await updateProcessingStatus(supabase, resumeId, 'failed', 'file_storage', storageError.message);
+        }
       
       return NextResponse.json({
         success: false,
@@ -221,7 +231,9 @@ export async function POST(request: NextRequest) {
       // Пытаемся использовать улучшенный AI парсер
       parsedData = await parseResumeTextImproved(text);
       console.log("✅ AI парсинг завершен успешно");
-      await updateProcessingStatus(supabase, resumeId, 'processing', 'ai_parsing');
+      if (resumeId) {
+        await updateProcessingStatus(supabase, resumeId, 'processing', 'ai_parsing');
+      }
       
     } catch (aiError) {
       console.warn("⚠️ AI парсинг не удался, используем fallback:", aiError);
@@ -231,7 +243,9 @@ export async function POST(request: NextRequest) {
       parsingMethod = 'fallback';
       
       console.log("✅ Fallback парсинг завершен");
-      await updateProcessingStatus(supabase, resumeId, 'processing', 'fallback_parsing');
+      if (resumeId) {
+        await updateProcessingStatus(supabase, resumeId, 'processing', 'fallback_parsing');
+      }
     }
 
     // Создание безопасных данных для базы
@@ -262,11 +276,15 @@ export async function POST(request: NextRequest) {
         .eq('id', resumeId);
 
       console.log("✅ Данные резюме обновлены");
-      await updateProcessingStatus(supabase, resumeId, 'processing', 'data_preparation');
+      if (resumeId) {
+        await updateProcessingStatus(supabase, resumeId, 'processing', 'data_preparation');
+      }
 
     } catch (dataError) {
       console.error("❌ Ошибка подготовки данных:", dataError);
-      await updateProcessingStatus(supabase, resumeId, 'failed', 'data_preparation', dataError.message);
+        if (resumeId) {
+          await updateProcessingStatus(supabase, resumeId, 'failed', 'data_preparation', dataError.message);
+        }
       
       return NextResponse.json({
         success: false,
@@ -293,7 +311,9 @@ export async function POST(request: NextRequest) {
         console.log("✅ Сводка резюме создана");
       }
 
-      await updateProcessingStatus(supabase, resumeId, 'processing', 'summary_creation');
+      if (resumeId) {
+        await updateProcessingStatus(supabase, resumeId, 'processing', 'summary_creation');
+      }
 
     } catch (summaryError) {
       console.warn("⚠️ Ошибка создания сводки:", summaryError);
@@ -367,7 +387,9 @@ export async function POST(request: NextRequest) {
     // Обновляем статус на "ошибка" если есть resumeId
     if (resumeId) {
       try {
-        await updateProcessingStatus(supabase, resumeId, 'failed', 'critical_error', error.message);
+        if (resumeId) {
+          await updateProcessingStatus(supabase, resumeId, 'failed', 'critical_error', error.message);
+        }
       } catch (updateError) {
         console.error("❌ Не удалось обновить статус ошибки:", updateError);
       }
