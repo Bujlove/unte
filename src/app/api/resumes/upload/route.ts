@@ -53,6 +53,8 @@ export async function POST(request: NextRequest) {
     console.log("Starting resume parsing...");
     const parsedData = await parseResumeTextWithRetry(text);
     console.log("Resume parsed successfully");
+    console.log("Parsed data skills:", parsedData.professional.skills);
+    console.log("Parsed data languages:", parsedData.languages);
 
     // Check for duplicates
     const supabase = await createAdminClient();
@@ -107,31 +109,35 @@ export async function POST(request: NextRequest) {
       : null;
 
     // Insert resume into database
+    const resumeData = {
+      file_url: fileUrl,
+      file_name: file.name,
+      file_size: file.size,
+      mime_type: file.type,
+      full_name: parsedData.personal.fullName,
+      email: parsedData.personal.email,
+      phone: parsedData.personal.phone,
+      location: parsedData.personal.location,
+      parsed_data: parsedData as any,
+      skills: skillsArray,
+      experience_years: parsedData.professional.totalExperience,
+      last_position: parsedData.experience?.[0]?.position || null,
+      last_company: parsedData.experience?.[0]?.company || null,
+      education_level: parsedData.education?.[0]?.degree || null,
+      languages: parsedData.languages && parsedData.languages.length > 0 ? parsedData.languages as any : null,
+      embedding: embeddingToVector(embedding),
+      summary_embedding: embeddingToVector(summaryEmbedding),
+      status: "active",
+      quality_score: qualityScore,
+      upload_token: uploadToken,
+      consent_given: consentGiven,
+    };
+    
+    console.log("Resume data to insert:", JSON.stringify(resumeData, null, 2));
+    
     const { data: resume, error: insertError } = await supabase
       .from("resumes")
-      .insert({
-        file_url: fileUrl,
-        file_name: file.name,
-        file_size: file.size,
-        mime_type: file.type,
-        full_name: parsedData.personal.fullName,
-        email: parsedData.personal.email,
-        phone: parsedData.personal.phone,
-        location: parsedData.personal.location,
-        parsed_data: parsedData as any,
-        skills: skillsArray,
-        experience_years: parsedData.professional.totalExperience,
-        last_position: parsedData.experience[0]?.position || null,
-        last_company: parsedData.experience[0]?.company || null,
-        education_level: parsedData.education[0]?.degree || null,
-        languages: parsedData.languages.length > 0 ? parsedData.languages as any : null,
-        embedding: embeddingToVector(embedding),
-        summary_embedding: embeddingToVector(summaryEmbedding),
-        status: "active",
-        quality_score: qualityScore,
-        upload_token: uploadToken,
-        consent_given: consentGiven,
-      })
+      .insert(resumeData)
       .select()
       .single();
 

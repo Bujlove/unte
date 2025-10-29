@@ -155,21 +155,21 @@ export function calculateQualityScore(parsedData: ParsedResume): number {
   if (parsedData.professional.skills.hard.length > 0) score += 10;
 
   // Experience (30 points)
-  if (parsedData.experience.length > 0) score += 10;
-  if (parsedData.experience.length >= 2) score += 10;
-  const hasDetailedExperience = parsedData.experience.some(
+  if (parsedData.experience && parsedData.experience.length > 0) score += 10;
+  if (parsedData.experience && parsedData.experience.length >= 2) score += 10;
+  const hasDetailedExperience = parsedData.experience?.some(
     (exp) => exp.achievements.length > 0
   );
   if (hasDetailedExperience) score += 10;
 
   // Education (10 points)
-  if (parsedData.education.length > 0) score += 10;
+  if (parsedData.education && parsedData.education.length > 0) score += 10;
 
   // Additional (10 points)
-  if (parsedData.languages.length > 0) score += 5;
+  if (parsedData.languages && parsedData.languages.length > 0) score += 5;
   if (
-    parsedData.additional.certifications.length > 0 ||
-    parsedData.additional.projects.length > 0
+    (parsedData.additional.certifications && parsedData.additional.certifications.length > 0) ||
+    (parsedData.additional.projects && parsedData.additional.projects.length > 0)
   )
     score += 5;
 
@@ -182,8 +182,8 @@ export function calculateQualityScore(parsedData: ParsedResume): number {
 export function extractSkills(parsedData: ParsedResume): string[] | null {
   const skills = [
     ...parsedData.professional.skills.hard,
-    ...parsedData.professional.skills.soft,
-    ...parsedData.professional.skills.tools,
+    ...(parsedData.professional.skills.soft || []),
+    ...(parsedData.professional.skills.tools || []),
   ];
 
   // Remove duplicates and normalize
@@ -197,15 +197,15 @@ export function extractSkills(parsedData: ParsedResume): string[] | null {
  */
 export function createResumeSummary(parsedData: ParsedResume) {
   // Extract current position from experience
-  const currentExperience = parsedData.experience.find(exp => !exp.endDate) || parsedData.experience[0];
+  const currentExperience = parsedData.experience?.find(exp => !exp.endDate) || parsedData.experience?.[0];
   
   // Extract languages
-  const languages = parsedData.languages.map(lang => `${lang.language} (${lang.level})`);
+  const languages = parsedData.languages?.map(lang => `${lang.language} (${lang.level})`) || [];
   
   // Extract key achievements
   const keyAchievements = parsedData.experience
-    .flatMap(exp => exp.achievements)
-    .slice(0, 5); // Top 5 achievements
+    ?.flatMap(exp => exp.achievements)
+    .slice(0, 5) || []; // Top 5 achievements
   
   // Determine work type preferences (basic logic)
   const workType = [];
@@ -303,17 +303,17 @@ function createFallbackResume(text: string): ParsedResume {
       totalExperience: experienceYears,
       skills: {
         hard: foundSkills,
-        soft: [],
-        tools: []
+        soft: null,
+        tools: null
       }
     },
-    experience: [],
-    education: [],
-    languages: [],
+    experience: null,
+    education: null,
+    languages: null,
     additional: {
-      certifications: [],
-      publications: [],
-      projects: []
+      certifications: null,
+      publications: null,
+      projects: null
     }
   };
 }

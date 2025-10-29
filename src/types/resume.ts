@@ -5,9 +5,9 @@
 export interface ParsedResume {
   personal: PersonalInfo;
   professional: ProfessionalInfo;
-  experience: Experience[];
-  education: Education[];
-  languages: Language[];
+  experience: Experience[] | null;
+  education: Education[] | null;
+  languages: Language[] | null;
   additional: AdditionalInfo;
 }
 
@@ -26,8 +26,8 @@ export interface ProfessionalInfo {
   totalExperience: number;
   skills: {
     hard: string[];
-    soft: string[];
-    tools: string[];
+    soft: string[] | null;
+    tools: string[] | null;
   };
 }
 
@@ -54,9 +54,9 @@ export interface Language {
 }
 
 export interface AdditionalInfo {
-  certifications: string[];
-  publications: string[];
-  projects: string[];
+  certifications: string[] | null;
+  publications: string[] | null;
+  projects: string[] | null;
 }
 
 export interface SalaryExpectation {
