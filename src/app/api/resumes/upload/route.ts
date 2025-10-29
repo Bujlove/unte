@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
       ...parsedData,
       experience: parsedData.experience && parsedData.experience.length > 0 ? parsedData.experience : null,
       education: parsedData.education && parsedData.education.length > 0 ? parsedData.education : null,
-      languages: parsedData.languages && parsedData.languages.length > 0 ? parsedData.languages : null,
+      languages: parsedData.languages && parsedData.languages.length > 0 ? JSON.stringify(parsedData.languages) : null,
       additional: {
         ...parsedData.additional,
         certifications: parsedData.additional.certifications && parsedData.additional.certifications.length > 0 ? parsedData.additional.certifications : null,
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
       last_position: parsedData.experience?.[0]?.position || null,
       last_company: parsedData.experience?.[0]?.company || null,
       education_level: parsedData.education?.[0]?.degree || null,
-      languages: parsedData.languages && parsedData.languages.length > 0 ? parsedData.languages : null,
+      languages: parsedData.languages && parsedData.languages.length > 0 ? JSON.stringify(parsedData.languages) : null,
       embedding: embeddingToVector(embedding),
       summary_embedding: embeddingToVector(summaryEmbedding),
       status: "active",
