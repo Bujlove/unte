@@ -1,9 +1,7 @@
 /**
- * File parsing utilities for extracting text from PDF and DOCX files
- * Now with Apache Tika integration for robust text extraction
+ * File parsing utilities for extracting text from PDF, DOCX, DOC, and TXT files
+ * Uses specialized parsers: PDF.js for PDF, Mammoth for DOCX, simple extraction for others
  */
-
-// import { extractTextWithTika, isTikaAvailable } from "../tika-parser";
 
 /**
  * Extract text from PDF file using PDF.js (better quality)
@@ -50,31 +48,98 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
 
 /**
  * Extract text from DOC file (old Word format)
- * Note: DOC files are more complex than DOCX, we'll try plain text extraction
+ * Enhanced extraction with better text cleaning and pattern recognition
  */
 export async function extractTextFromDOC(buffer: Buffer): Promise<string> {
   try {
     console.log("Attempting to extract text from DOC file...");
     
-    // DOC files are binary and harder to parse than DOCX
-    // Try to extract readable text from the binary data
-    const textContent = buffer.toString("utf-8");
+    // Convert buffer to string with multiple encodings
+    let textContent = '';
     
-    // Look for readable text patterns in the binary data
+    // Try UTF-8 first
+    try {
+      textContent = buffer.toString("utf-8");
+    } catch (error) {
+      // Fallback to latin1
+      textContent = buffer.toString("latin1");
+    }
+    
+    // Enhanced text cleaning for DOC files
     const readableText = textContent
       .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, ' ') // Remove control characters
+      .replace(/[\uFFFD]/g, ' ') // Remove replacement characters
       .replace(/\s+/g, ' ') // Normalize whitespace
+      .replace(/\b\w{1,2}\b/g, '') // Remove very short words (likely artifacts)
+      .replace(/\b\d{1,2}\b/g, '') // Remove single/double digits
       .trim();
     
-    if (readableText && readableText.length > 50) {
-      console.log(`DOC text extraction successful, length: ${readableText.length}`);
+    // Look for meaningful text patterns
+    const words = readableText.split(/\s+/).filter(word => 
+      word.length > 2 && 
+      /[a-zA-Z]/.test(word) && 
+      !/^[0-9]+$/.test(word)
+    );
+    
+    if (words.length > 10 && readableText.length > 100) {
+      console.log(`DOC text extraction successful, length: ${readableText.length}, words: ${words.length}`);
       return readableText;
     }
     
-    throw new Error("Could not extract readable text from DOC file");
+    // Try alternative extraction method
+    const altText = buffer.toString("ascii")
+      .replace(/[^\x20-\x7E]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    if (altText.length > 100) {
+      console.log(`DOC alternative extraction successful, length: ${altText.length}`);
+      return altText;
+    }
+    
+    throw new Error("Could not extract meaningful text from DOC file");
   } catch (error) {
     console.error("Error parsing DOC:", error);
     throw new Error("Failed to extract text from DOC file. Please try converting to DOCX or PDF format.");
+  }
+}
+
+/**
+ * Extract text from TXT file with encoding detection
+ */
+export async function extractTextFromTXT(buffer: Buffer): Promise<string> {
+  try {
+    console.log("Extracting text from TXT file...");
+    
+    // Try different encodings
+    const encodings = ['utf-8', 'utf-16le', 'utf-16be', 'latin1', 'ascii'];
+    
+    for (const encoding of encodings) {
+      try {
+        const text = buffer.toString(encoding);
+        
+        // Check if text looks valid (contains readable characters)
+        const readableChars = text.replace(/[\x00-\x1F\x7F-\x9F]/g, '').length;
+        const totalChars = text.length;
+        
+        if (totalChars > 0 && (readableChars / totalChars) > 0.7) {
+          console.log(`TXT extraction successful with ${encoding}, length: ${text.length}`);
+          return text.trim();
+        }
+      } catch (error) {
+        // Try next encoding
+        continue;
+      }
+    }
+    
+    // Fallback to UTF-8
+    const text = buffer.toString("utf-8");
+    console.log(`TXT fallback extraction, length: ${text.length}`);
+    return text.trim();
+    
+  } catch (error) {
+    console.error("Error parsing TXT:", error);
+    throw new Error("Failed to extract text from TXT file");
   }
 }
 
@@ -127,11 +192,8 @@ export async function extractTextFromFile(
 ): Promise<string> {
   console.log(`Extracting text from file: ${fileName}, mimeType: ${mimeType}, size: ${buffer.length}`);
   
-  // Tika temporarily disabled - using specific parsers
-  console.log('Using specific parsers for text extraction...');
-  
-  // Fallback to specific parsers based on file type
-  console.log('Using specific parsers as fallback...');
+  // Use specialized parsers based on file type
+  console.log('Using specialized parsers for text extraction...');
   
   // Helper function to get file extension
   const getExtension = (fileName?: string): string => {
@@ -157,7 +219,7 @@ export async function extractTextFromFile(
     } else if (ext === 'doc') {
       return extractTextFromDOC(buffer);
     } else if (ext === 'txt' || ext === 'rtf') {
-      return buffer.toString("utf-8");
+      return extractTextFromTXT(buffer);
     }
   }
   
@@ -183,9 +245,9 @@ export async function extractTextFromFile(
     return extractTextFromDOC(buffer);
   }
   
-  // Handle text types
+  // Handle text types with encoding detection
   if (mimeType.startsWith("text/") || mimeType === "application/rtf") {
-    return buffer.toString("utf-8");
+    return extractTextFromTXT(buffer);
   }
   
   // Fallback: try to determine by file extension if MIME type is unknown
@@ -200,16 +262,20 @@ export async function extractTextFromFile(
     } else if (ext === 'doc') {
       return extractTextFromDOC(buffer);
     } else if (ext === 'txt' || ext === 'rtf') {
-      return buffer.toString("utf-8");
+      return extractTextFromTXT(buffer);
     }
   }
   
-  // Last resort: try plain text extraction
+  // Last resort: try plain text extraction with encoding detection
   console.log(`Unknown file type ${mimeType}, trying plain text extraction`);
-  const textContent = buffer.toString("utf-8");
-  if (textContent && textContent.length > 50) {
-    console.log(`Plain text extraction successful, length: ${textContent.length}`);
-    return textContent;
+  try {
+    const textContent = await extractTextFromTXT(buffer);
+    if (textContent && textContent.length > 50) {
+      console.log(`Plain text extraction successful, length: ${textContent.length}`);
+      return textContent;
+    }
+  } catch (error) {
+    console.log('Plain text extraction failed:', error);
   }
   
   throw new Error(`Unsupported file type: ${mimeType}. Supported formats: PDF, DOCX, DOC, TXT`);
