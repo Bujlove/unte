@@ -45,9 +45,10 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Function to check for duplicate resumes
 DROP FUNCTION IF EXISTS check_duplicate_resume(TEXT, TEXT);
+DROP FUNCTION IF EXISTS check_duplicate_resume(TEXT);
 CREATE OR REPLACE FUNCTION check_duplicate_resume(
-    check_email TEXT DEFAULT NULL,
-    check_phone TEXT DEFAULT NULL
+    check_phone TEXT,
+    check_email TEXT DEFAULT NULL
 )
 RETURNS TABLE(
     id UUID,
@@ -58,8 +59,8 @@ BEGIN
     RETURN QUERY
     SELECT r.id, r.upload_token, r.created_at
     FROM resumes r
-    WHERE (check_email IS NOT NULL AND r.email = check_email)
-       OR (check_phone IS NOT NULL AND r.phone = check_phone)
+    WHERE (check_phone IS NOT NULL AND r.phone = check_phone)
+       OR (check_email IS NOT NULL AND r.email = check_email)
     ORDER BY r.created_at DESC
     LIMIT 1;
 END;
