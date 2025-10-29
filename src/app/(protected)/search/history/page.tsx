@@ -22,10 +22,6 @@ export default function SearchHistoryPage() {
 
   const supabase = createClient();
 
-  useEffect(() => {
-    fetchSearchHistory();
-  }, [fetchSearchHistory]);
-
   const fetchSearchHistory = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -53,6 +49,10 @@ export default function SearchHistoryPage() {
       setLoading(false);
     }
   }, [supabase]);
+
+  useEffect(() => {
+    fetchSearchHistory();
+  }, [fetchSearchHistory]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("ru-RU", {
