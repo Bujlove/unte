@@ -2,13 +2,14 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
-export default async function CandidatePage({ params }: { params: { id: string } }) {
+export default async function CandidatePage({ params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient();
+  const { id } = await params;
 
   const { data: resume, error } = await supabase
     .from("resumes")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .eq("status", "active")
     .single();
 

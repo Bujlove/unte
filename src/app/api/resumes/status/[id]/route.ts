@@ -3,10 +3,10 @@ import { createAdminClient } from "@/lib/supabase/server";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const resumeId = params.id;
+    const { id: resumeId } = await params;
     
     if (!resumeId) {
       return NextResponse.json({ error: "Resume ID is required" }, { status: 400 });
