@@ -1,0 +1,155 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { validateFileSize, validateFileType, extractTextFromFile } from "@/lib/storage/file-parser";
+import { parseResumeText, calculateQualityScore, extractSkills } from "@/lib/deepseek/parser";
+import { generateResumeEmbedding, generateSummaryEmbedding, embeddingToVector } from "@/lib/deepseek/embeddings";
+import { generateToken } from "@/lib/utils";
+import { nanoid } from "nanoid";
+
+export async function POST(request: NextRequest) {
+  try {
+    const formData = await request.formData();
+    const file = formData.get("file") as File;
+    const consentGiven = formData.get("consent") === "true";
+
+    if (!file) {
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    }
+
+    if (!consentGiven) {
+      return NextResponse.json(
+        { error: "Consent for data processing is required" },
+        { status: 400 }
+      );
+    }
+
+    // Validate file
+    if (!validateFileSize(file.size)) {
+      return NextResponse.json({ error: "File too large (max 10MB)" }, { status: 400 });
+    }
+
+    if (!validateFileType(file.type, file.name)) {
+      return NextResponse.json(
+        { error: "Invalid file type. Supported: PDF, DOCX, DOC, TXT" },
+        { status: 400 }
+      );
+    }
+
+    // Convert file to buffer
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Extract text from file
+    const text = await extractTextFromFile(buffer, file.type);
+
+    if (!text || text.length < 100) {
+      return NextResponse.json(
+        { error: "File appears to be empty or too short" },
+        { status: 400 }
+      );
+    }
+
+    // Parse resume with AI
+    const parsedData = await parseResumeText(text);
+
+    // Check for duplicates
+    const supabase = await createAdminClient();
+    
+    if (parsedData.personal.email || parsedData.personal.phone) {
+      const { data: existingResume } = await supabase.rpc("check_duplicate_resume", {
+        check_email: parsedData.personal.email,
+        check_phone: parsedData.personal.phone,
+      });
+
+      if (existingResume && existingResume.length > 0) {
+        // Return existing resume info with update token
+        return NextResponse.json({
+          success: true,
+          isUpdate: true,
+          resumeId: existingResume[0].id,
+          uploadToken: existingResume[0].upload_token,
+          message: "Resume already exists. You can update it using the provided link.",
+        });
+      }
+    }
+
+    // Generate embeddings
+    const embedding = await generateResumeEmbedding(parsedData);
+    const summaryEmbedding = await generateSummaryEmbedding(parsedData);
+
+    // Calculate quality score
+    const qualityScore = calculateQualityScore(parsedData);
+
+    // Extract skills array
+    const skills = extractSkills(parsedData);
+
+    // Generate unique upload token for future updates
+    const uploadToken = nanoid(32);
+
+    // Upload file to Supabase Storage
+    const fileName = `${Date.now()}-${file.name}`;
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("resumes")
+      .upload(fileName, buffer, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error("Storage upload error:", uploadError);
+      // Continue anyway - file storage is not critical
+    }
+
+    const fileUrl = uploadData
+      ? supabase.storage.from("resumes").getPublicUrl(fileName).data.publicUrl
+      : null;
+
+    // Insert resume into database
+    const { data: resume, error: insertError } = await supabase
+      .from("resumes")
+      .insert({
+        file_url: fileUrl,
+        file_name: file.name,
+        file_size: file.size,
+        mime_type: file.type,
+        full_name: parsedData.personal.fullName,
+        email: parsedData.personal.email,
+        phone: parsedData.personal.phone,
+        location: parsedData.personal.location,
+        parsed_data: parsedData as any,
+        skills,
+        experience_years: parsedData.professional.totalExperience,
+        last_position: parsedData.experience[0]?.position || null,
+        last_company: parsedData.experience[0]?.company || null,
+        education_level: parsedData.education[0]?.degree || null,
+        languages: parsedData.languages as any,
+        embedding: embeddingToVector(embedding),
+        summary_embedding: embeddingToVector(summaryEmbedding),
+        status: "active",
+        quality_score: qualityScore,
+        upload_token: uploadToken,
+        consent_given: consentGiven,
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error("Database insert error:", insertError);
+      return NextResponse.json({ error: "Failed to save resume" }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      resumeId: resume.id,
+      uploadToken,
+      message: "Resume uploaded and processed successfully",
+    });
+  } catch (error) {
+    console.error("Resume upload error:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to process resume" },
+      { status: 500 }
+    );
+  }
+}
+
