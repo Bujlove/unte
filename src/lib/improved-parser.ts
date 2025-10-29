@@ -119,12 +119,12 @@ ${text}`;
         }
       ]);
 
-      if (!response || !response.content) {
+      if (!response || !response.choices || !response.choices[0] || !response.choices[0].message) {
         throw new Error("Пустой ответ от AI");
       }
 
       // Очистка ответа от markdown
-      let jsonText = response.content.trim();
+      let jsonText = response.choices[0].message.content?.trim() || '';
       if (jsonText.startsWith('```json')) {
         jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
       } else if (jsonText.startsWith('```')) {
