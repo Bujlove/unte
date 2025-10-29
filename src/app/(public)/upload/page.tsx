@@ -12,6 +12,14 @@ export default function UploadPage() {
     success: boolean;
     message: string;
     uploadToken?: string;
+    summary?: {
+      fullName: string;
+      position: string;
+      company: string;
+      experience: number;
+      skills: string[];
+      location: string;
+    };
   } | null>(null);
 
   const onDrop = useCallback(
@@ -52,19 +60,20 @@ export default function UploadPage() {
 
       setProgress(100);
 
-      if (data.success) {
-        setResult({
-          success: true,
-          message: data.message,
-          uploadToken: data.uploadToken,
-        });
-        setSelectedFile(null);
-      } else {
-        setResult({
-          success: false,
-          message: data.error || "Произошла ошибка при загрузке",
-        });
-      }
+        if (data.success) {
+          setResult({
+            success: true,
+            message: data.message,
+            uploadToken: data.uploadToken,
+            summary: data.summary,
+          });
+          setSelectedFile(null);
+        } else {
+          setResult({
+            success: false,
+            message: data.error || "Произошла ошибка при загрузке",
+          });
+        }
     } catch (error) {
       setResult({
         success: false,
@@ -227,6 +236,45 @@ export default function UploadPage() {
               <p className={result.success ? "text-green-700" : "text-red-700"}>
                 {result.message}
               </p>
+              
+              {result.success && result.summary && (
+                <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                  <h3 className="font-semibold text-green-800 mb-3">Извлеченные данные:</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="font-medium text-gray-700">Имя:</span>
+                      <span className="ml-2 text-gray-900">{result.summary.fullName || "Не указано"}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">Должность:</span>
+                      <span className="ml-2 text-gray-900">{result.summary.position || "Не указано"}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">Компания:</span>
+                      <span className="ml-2 text-gray-900">{result.summary.company || "Не указано"}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">Опыт:</span>
+                      <span className="ml-2 text-gray-900">{result.summary.experience} лет</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">Локация:</span>
+                      <span className="ml-2 text-gray-900">{result.summary.location || "Не указано"}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">Навыки:</span>
+                      <div className="ml-2 flex flex-wrap gap-1">
+                        {result.summary.skills.map((skill, idx) => (
+                          <span key={idx} className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {result.uploadToken && (
                 <div className="mt-4 p-3 bg-white rounded border border-green-300">
                   <p className="text-sm text-gray-700 mb-2">
