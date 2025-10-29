@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { validateFileSize, validateFileType, extractTextFromFile } from "@/lib/storage/file-parser";
-import { parseResumeText, calculateQualityScore, extractSkills } from "@/lib/deepseek/parser";
+import { parseResumeTextWithRetry, calculateQualityScore, extractSkills, createResumeSummary } from "@/lib/deepseek/parser";
 import { generateResumeEmbedding, generateSummaryEmbedding, embeddingToVector } from "@/lib/deepseek/embeddings";
 import { generateToken } from "@/lib/utils";
 import { nanoid } from "nanoid";
@@ -49,8 +49,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse resume with AI
-    const parsedData = await parseResumeText(text);
+    // Parse resume with AI (with retry logic)
+    console.log("Starting resume parsing...");
+    const parsedData = await parseResumeTextWithRetry(text);
+    console.log("Resume parsed successfully");
 
     // Check for duplicates
     const supabase = await createAdminClient();
@@ -138,11 +140,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to save resume" }, { status: 500 });
     }
 
+    // Create summary data for quick access
+    console.log("Creating resume summary...");
+    const summaryData = createResumeSummary(parsedData);
+    
+    // Insert summary into resume_summaries table
+    const { error: summaryError } = await supabase
+      .from("resume_summaries")
+      .insert({
+        resume_id: resume.id,
+        ...summaryData
+      });
+
+    if (summaryError) {
+      console.error("Summary insert error:", summaryError);
+      // Don't fail the whole process for summary error
+    } else {
+      console.log("Resume summary created successfully");
+    }
+
     return NextResponse.json({
       success: true,
       resumeId: resume.id,
       uploadToken,
       message: "Resume uploaded and processed successfully",
+      summary: {
+        fullName: summaryData.full_name,
+        position: summaryData.current_position,
+        company: summaryData.current_company,
+        experience: summaryData.experience_years,
+        skills: summaryData.skills.slice(0, 5), // Top 5 skills
+        location: summaryData.location
+      }
     });
   } catch (error) {
     console.error("Resume upload error:", error);

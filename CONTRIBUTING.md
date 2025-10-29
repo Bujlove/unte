@@ -1,237 +1,175 @@
-# Contributing to AI Recruiting Platform
+# Участие в разработке Unte
 
-Thank you for your interest in contributing! This document provides guidelines for contributing to the project.
+Спасибо за интерес к проекту Unte! Мы приветствуем любой вклад в развитие платформы.
 
-## Getting Started
+## 🚀 Быстрый старт
 
-1. Fork the repository
-2. Clone your fork: `git clone https://github.com/your-username/ai-recruiting-platform.git`
-3. Install dependencies: `npm install`
-4. Set up environment variables (see `env.example`)
-5. Set up Supabase database (see `docs/SETUP.md`)
-6. Run development server: `npm run dev`
+### 1. Форк и клонирование
+```bash
+# Форкните репозиторий на GitHub
+git clone https://github.com/YOUR_USERNAME/unte.git
+cd unte
+```
 
-## Development Workflow
+### 2. Настройка окружения
+```bash
+# Установка зависимостей
+npm install
 
-### Branching Strategy
+# Копирование переменных окружения
+cp .env.local.example .env.local
+# Заполните переменные в .env.local
+```
 
-- `main` - Production branch (protected)
-- `develop` - Development branch
-- `feature/*` - Feature branches
-- `fix/*` - Bug fix branches
-- `hotfix/*` - Urgent production fixes
+### 3. Создание ветки для функции
+```bash
+# Переключиться на develop
+git checkout develop
+git pull origin develop
 
-### Making Changes
+# Создать новую ветку
+git checkout -b feature/your-feature-name
+```
 
-1. Create a new branch from `develop`:
-   ```bash
-   git checkout develop
-   git pull origin develop
-   git checkout -b feature/your-feature-name
-   ```
+## 📋 Процесс разработки
 
-2. Make your changes following our code standards
+### 1. Разработка
+- Следуйте [DEVELOPMENT_WORKFLOW.md](./DEVELOPMENT_WORKFLOW.md)
+- Используйте ветку `develop` для разработки
+- Создавайте отдельные ветки для каждой функции
 
-3. Test your changes:
-   ```bash
-   npm run lint
-   npm run type-check
-   npm run build
-   ```
+### 2. Тестирование
+```bash
+# Проверка типов
+npm run type-check
 
-4. Commit your changes:
-   ```bash
-   git add .
-   git commit -m "feat: add your feature description"
-   ```
+# Линтинг
+npm run lint
 
-5. Push to your fork:
-   ```bash
-   git push origin feature/your-feature-name
-   ```
+# Полная проверка
+npm run check-all
+```
 
-6. Create a Pull Request to `develop` branch
+### 3. Коммиты
+Используйте конвенцию коммитов:
+```
+feat: новая функция
+fix: исправление бага
+docs: обновление документации
+style: форматирование кода
+refactor: рефакторинг
+test: добавление тестов
+chore: обновление зависимостей
+```
 
-## Code Standards
+### 4. Pull Request
+1. Отправьте ветку: `git push origin feature/your-feature-name`
+2. Создайте Pull Request: `develop` → `main`
+3. Опишите изменения в PR
+4. Дождитесь ревью
+
+## 🎯 Области для вклада
+
+### 🐛 Исправление багов
+- Проверьте [Issues](https://github.com/Bujlove/unte/issues)
+- Выберите баг с лейблом "bug"
+- Создайте ветку и исправьте
+
+### ✨ Новые функции
+- Обсудите идею в Issue
+- Создайте детальное описание
+- Реализуйте с тестами
+
+### 📚 Документация
+- Улучшение README
+- Добавление примеров
+- Переводы на другие языки
+
+### 🎨 UI/UX
+- Улучшение дизайна
+- Адаптивность
+- Доступность
+
+## 📝 Стандарты кода
 
 ### TypeScript
+- Используйте строгую типизацию
+- Избегайте `any`
+- Документируйте сложные типы
 
-- Use TypeScript for all new files
-- Avoid `any` types - use proper types or `unknown`
-- Export types and interfaces when they might be reused
+### React
+- Функциональные компоненты
+- Hooks вместо классов
+- Мемоизация при необходимости
 
-### React Components
+### Стили
+- Tailwind CSS классы
+- Компоненты shadcn/ui
+- Мобильная адаптивность
 
-- Use functional components with hooks
-- Use Server Components by default (Next.js 14)
-- Add `"use client"` directive only when necessary
-- Keep components focused and small
-
-### Naming Conventions
-
-- **Files**: Use kebab-case for file names (`user-profile.tsx`)
-- **Components**: Use PascalCase (`UserProfile`)
-- **Functions**: Use camelCase (`getUserProfile`)
-- **Constants**: Use UPPER_SNAKE_CASE (`API_BASE_URL`)
-- **Types/Interfaces**: Use PascalCase (`UserProfile`, `ApiResponse`)
-
-### Code Organization
-
-```typescript
-// 1. Imports
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-
-// 2. Types/Interfaces
-interface Props {
-  title: string;
-}
-
-// 3. Component
-export default function Component({ title }: Props) {
-  // 4. Hooks
-  const [state, setState] = useState("");
-
-  // 5. Functions
-  const handleClick = () => {
-    // ...
-  };
-
-  // 6. Render
-  return (
-    <div>
-      {/* ... */}
-    </div>
-  );
-}
+### Структура файлов
+```
+src/
+├── app/           # Next.js App Router
+├── components/    # React компоненты
+├── lib/          # Утилиты
+└── types/        # TypeScript типы
 ```
 
-### Styling
+## 🧪 Тестирование
 
-- Use Tailwind CSS for styling
-- Follow mobile-first approach
-- Use semantic class names
-- Extract repeated patterns into components
+### Локальное тестирование
+```bash
+# Запуск в режиме разработки
+npm run dev
 
-### Database
-
-- Always use parameterized queries
-- Follow RLS policies
-- Add migrations for schema changes
-- Test migrations before deploying
-
-## Commit Messages
-
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-- `feat:` - New feature
-- `fix:` - Bug fix
-- `docs:` - Documentation changes
-- `style:` - Code style changes (formatting, etc.)
-- `refactor:` - Code refactoring
-- `test:` - Adding or updating tests
-- `chore:` - Maintenance tasks
-
-Examples:
-```
-feat: add candidate export to Excel
-fix: resolve search pagination issue
-docs: update API documentation
-refactor: simplify auth middleware
+# Проверка сборки
+npm run build
 ```
 
-## Pull Request Process
+### Тестирование функций
+- Загрузка резюме
+- AI чат
+- Поиск кандидатов
+- Авторизация
 
-1. **Update Documentation**: Update README.md if you're adding new features
-2. **Add Tests**: If applicable, add tests for your changes
-3. **Update CHANGELOG**: Add your changes to `CHANGELOG.md` under `[Unreleased]`
-4. **Follow Template**: Use the PR template and fill in all sections
-5. **Request Review**: Request review from maintainers
-6. **Address Feedback**: Respond to review comments and make necessary changes
+## 📋 Чек-лист перед PR
 
-## Testing
+- [ ] Код следует стандартам проекта
+- [ ] Все тесты проходят
+- [ ] Нет ошибок ESLint/TypeScript
+- [ ] Документация обновлена
+- [ ] Коммиты следуют конвенции
+- [ ] PR имеет описание изменений
 
-### Manual Testing
+## 🐛 Сообщение о багах
 
-1. Test on different browsers (Chrome, Firefox, Safari)
-2. Test responsive design (mobile, tablet, desktop)
-3. Test with different user roles (candidate, recruiter, admin)
-4. Test edge cases and error scenarios
+При создании Issue укажите:
+1. **Описание** - что происходит
+2. **Шаги воспроизведения** - как повторить
+3. **Ожидаемое поведение** - что должно быть
+4. **Фактическое поведение** - что происходит
+5. **Скриншоты** - если применимо
+6. **Окружение** - браузер, ОС, версия
 
-### Automated Testing (Future)
+## 💡 Предложения функций
 
-We plan to add automated testing:
-- Unit tests with Jest
-- Integration tests with Testing Library
-- E2E tests with Playwright
+При предложении новой функции:
+1. Проверьте существующие Issues
+2. Создайте детальное описание
+3. Объясните пользу для пользователей
+4. Предложите план реализации
 
-## Code Review Guidelines
+## 📞 Получение помощи
 
-### For Authors
+- **GitHub Issues** - для багов и предложений
+- **Discussions** - для общих вопросов
+- **Email** - для приватных вопросов
 
-- Keep PRs focused and reasonably sized
-- Provide context in PR description
-- Add screenshots for UI changes
-- Be responsive to feedback
+## 📄 Лицензия
 
-### For Reviewers
+Участвуя в проекте, вы соглашаетесь с тем, что ваш вклад будет лицензирован под MIT License.
 
-- Be constructive and respectful
-- Explain the "why" behind suggestions
-- Approve or request changes clearly
-- Test the changes locally if possible
+---
 
-## Common Tasks
-
-### Adding a New API Route
-
-1. Create file in `src/app/api/[route]/route.ts`
-2. Add authentication check
-3. Validate input with Zod
-4. Implement business logic
-5. Return proper status codes
-6. Add error handling
-7. Document in API docs
-
-### Adding a New Database Table
-
-1. Create migration file in `supabase/migrations/`
-2. Define table schema
-3. Add RLS policies
-4. Add necessary indexes
-5. Update types in `src/types/database.ts`
-6. Test migration locally
-7. Document the table
-
-### Adding a New Component
-
-1. Create component file
-2. Add types for props
-3. Implement component
-4. Add to appropriate directory
-5. Export if reusable
-6. Use in parent component
-
-## Security
-
-- Never commit sensitive data (API keys, passwords)
-- Always validate user input
-- Use parameterized queries
-- Follow OWASP guidelines
-- Report security issues privately
-
-## Need Help?
-
-- Check existing issues
-- Read documentation in `docs/`
-- Ask in discussions
-- Contact maintainers
-
-## License
-
-By contributing, you agree that your contributions will be licensed under the project's license.
-
-## Thank You!
-
-Your contributions make this project better. We appreciate your time and effort! 🙏
-
+Спасибо за вклад в развитие Unte! 🚀

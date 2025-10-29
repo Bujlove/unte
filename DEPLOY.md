@@ -1,128 +1,229 @@
-# 🚀 Деплой Unte на Vercel
+# Деплой Unte
 
-## Шаг 1: Подготовка GitHub репозитория
+Руководство по развертыванию платформы Unte на различных платформах.
 
+## 🚀 Vercel (Рекомендуется)
+
+### 1. Подготовка
+- Аккаунт на [Vercel](https://vercel.com)
+- Репозиторий на GitHub
+- Настроенные переменные окружения
+
+### 2. Подключение репозитория
+1. Войдите в Vercel Dashboard
+2. Нажмите "New Project"
+3. Выберите репозиторий `Bujlove/unte`
+4. Vercel автоматически определит Next.js
+
+### 3. Настройка переменных окружения
+В настройках проекта добавьте:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+DEEPSEEK_API_KEY=your-deepseek-api-key
+DEEPSEEK_API_URL=https://api.deepseek.com/v1
+```
+
+### 4. Настройка базы данных
+1. Выполните миграции в Supabase SQL Editor:
+   - `001_init_schema.sql`
+   - `002_rls_policies.sql`
+   - `003_functions.sql`
+
+2. Настройте Google OAuth в Supabase:
+   - Authentication → Providers → Google
+   - Добавьте Client ID и Client Secret
+
+### 5. Деплой
+- **Production**: автоматический при push в `main`
+- **Preview**: автоматический при push в `develop`
+
+## 🐳 Docker
+
+### 1. Создание Dockerfile
+```dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --only=production
+
+COPY . .
+RUN npm run build
+
+EXPOSE 3000
+
+CMD ["npm", "start"]
+```
+
+### 2. Сборка и запуск
 ```bash
-# Инициализируйте Git (если еще не сделано)
-git init
+# Сборка образа
+docker build -t unte .
 
-# Добавьте все файлы
-git add .
-
-# Создайте первый коммит
-git commit -m "Initial commit: Unte AI Recruiting Platform"
-
-# Создайте репозиторий на GitHub и свяжите его
-git remote add origin https://github.com/your-username/unte.git
-git branch -M main
-git push -u origin main
+# Запуск контейнера
+docker run -p 3000:3000 \
+  -e NEXT_PUBLIC_SUPABASE_URL=your-url \
+  -e NEXT_PUBLIC_SUPABASE_ANON_KEY=your-key \
+  -e SUPABASE_SERVICE_ROLE_KEY=your-key \
+  -e DEEPSEEK_API_KEY=your-key \
+  unte
 ```
 
-## Шаг 2: Настройка Vercel
+## ☁️ Другие платформы
 
-1. Перейдите на [vercel.com](https://vercel.com) и войдите через GitHub
-2. Нажмите **"Add New Project"**
-3. Импортируйте ваш GitHub репозиторий `unte`
-4. В настройках проекта:
-   - **Framework Preset**: Next.js
-   - **Root Directory**: `./` (по умолчанию)
-   - **Build Command**: `npm run build`
-   - **Output Directory**: `.next`
+### Netlify
+1. Подключите репозиторий
+2. Настройте build command: `npm run build`
+3. Настройте publish directory: `.next`
+4. Добавьте переменные окружения
 
-## Шаг 3: Настройка Environment Variables
+### Railway
+1. Подключите GitHub репозиторий
+2. Выберите Next.js шаблон
+3. Настройте переменные окружения
+4. Деплой автоматический
 
-В настройках проекта Vercel добавьте следующие переменные окружения:
+### AWS Amplify
+1. Подключите репозиторий
+2. Настройте build settings:
+   ```yaml
+   version: 1
+   frontend:
+     phases:
+       preBuild:
+         commands:
+           - npm ci
+       build:
+         commands:
+           - npm run build
+     artifacts:
+       baseDirectory: .next
+       files:
+         - '**/*'
+   ```
 
-### Supabase
+## 🔧 Настройка окружения
+
+### Переменные окружения
+```env
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# DeepSeek API
+DEEPSEEK_API_KEY=sk-your-deepseek-key
+DEEPSEEK_API_URL=https://api.deepseek.com/v1
+
+# Next.js
+NEXTAUTH_URL=https://your-domain.com
+NEXTAUTH_SECRET=your-secret-key
 ```
-NEXT_PUBLIC_SUPABASE_URL=https://ghluoqegmbeqpatatkes.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-DATABASE_URL=postgresql://postgres:Mitya24012000!@db.ghluoqegmbeqpatatkes.supabase.co:5432/postgres
-```
 
-### DeepSeek API
-```
-DEEPSEEK_API_KEY=sk-8e5ea4aa5d7b4db89961ed4113a52952
-DEEPSEEK_API_URL=https://api.deepseek.com
-```
+### Supabase настройка
+1. **База данных**:
+   - Выполните миграции
+   - Настройте RLS политики
+   - Создайте индексы
 
-### Next.js
-```
-NEXT_PUBLIC_APP_URL=https://your-domain.vercel.app
-```
+2. **Storage**:
+   - Включите Storage
+   - Настройте bucket для резюме
+   - Установите политики доступа
 
-⚠️ **Важно**: Замените `your-domain.vercel.app` на реальный домен после деплоя!
-
-## Шаг 4: Обновление Supabase Auth URLs
-
-После первого деплоя обновите в Supabase Dashboard:
-
-1. Перейдите в **Authentication → URL Configuration**
-2. Добавьте ваш Vercel домен в:
-   - **Site URL**: `https://your-domain.vercel.app`
-   - **Redirect URLs**: 
-     - `https://your-domain.vercel.app/auth/callback`
-     - `https://your-domain.vercel.app/dashboard`
-
-## Шаг 5: Deploy!
-
-После настройки всех переменных:
-
-1. Нажмите **"Deploy"** в Vercel
-2. Дождитесь завершения сборки (2-3 минуты)
-3. Ваш сайт будет доступен по адресу `https://your-project.vercel.app`
-
-## 🎯 Проверка после деплоя
-
-1. ✅ Главная страница загружается
-2. ✅ Логотип Unte отображается
-3. ✅ Регистрация работает (Magic Link)
-4. ✅ Вход в систему работает
-5. ✅ Загрузка резюме работает
-6. ✅ AI поиск в дашборде работает
-
-## 🔄 Автоматические деплои
-
-После настройки каждый push в ветку `main` будет автоматически деплоиться на production.
-
-## 🌐 Кастомный домен (опционально)
-
-1. В Vercel: Settings → Domains
-2. Добавьте ваш домен (например, `unte.ru`)
-3. Настройте DNS записи у вашего регистратора
-4. Обновите `NEXT_PUBLIC_APP_URL` в environment variables
+3. **Auth**:
+   - Настройте провайдеры (Magic Link, Google)
+   - Добавьте redirect URLs
+   - Настройте email templates
 
 ## 📊 Мониторинг
 
-После деплоя доступны:
-- **Vercel Analytics**: автоматически включена
-- **Logs**: доступны в Vercel Dashboard
-- **Supabase Logs**: в Supabase Dashboard
+### Vercel Analytics
+- Автоматически включен
+- Метрики производительности
+- Ошибки и исключения
 
----
+### Supabase Dashboard
+- Мониторинг базы данных
+- Логи запросов
+- Использование ресурсов
 
-## 🆘 Troubleshooting
-
-### Ошибка сборки
+### Sentry (опционально)
 ```bash
-# Проверьте локально перед деплоем
-npm run build
+npm install @sentry/nextjs
 ```
 
-### Email не приходят
-- Убедитесь, что в Supabase настроены Auth URLs
-- Проверьте Supabase → Authentication → Email Templates
+## 🔄 CI/CD
 
-### 500 ошибки
-- Проверьте логи в Vercel Dashboard
-- Убедитесь, что все environment variables заданы правильно
+### GitHub Actions
+Проект настроен с автоматическими workflow:
+- **Lint & Type Check** - при каждом PR
+- **Deploy Preview** - при push в develop
+- **Deploy Production** - при push в main
 
-### База данных не доступна
-- Проверьте `DATABASE_URL` в Vercel
-- Убедитесь, что миграции выполнены в Supabase
+### Ручной деплой
+```bash
+# Сборка
+npm run build
+
+# Проверка
+npm run check-all
+
+# Деплой (зависит от платформы)
+vercel --prod
+```
+
+## 🚨 Troubleshooting
+
+### Частые проблемы
+
+1. **Ошибка сборки**:
+   - Проверьте переменные окружения
+   - Убедитесь в корректности TypeScript
+   - Проверьте зависимости
+
+2. **Ошибки базы данных**:
+   - Проверьте подключение к Supabase
+   - Убедитесь в выполнении миграций
+   - Проверьте RLS политики
+
+3. **Проблемы с AI**:
+   - Проверьте DeepSeek API ключ
+   - Убедитесь в корректности URL
+   - Проверьте лимиты API
+
+### Логи
+```bash
+# Vercel
+vercel logs
+
+# Docker
+docker logs container-name
+
+# Локально
+npm run dev
+```
+
+## 📈 Оптимизация
+
+### Performance
+- Используйте Server Components
+- Оптимизируйте изображения
+- Настройте кэширование
+
+### SEO
+- Настройте мета-теги
+- Добавьте sitemap.xml
+- Настройте robots.txt
+
+### Безопасность
+- Используйте HTTPS
+- Настройте CORS
+- Регулярно обновляйте зависимости
 
 ---
 
-🎉 **Готово!** Ваша платформа Unte теперь доступна онлайн!
-
+Для вопросов по деплою создайте Issue в репозитории.
