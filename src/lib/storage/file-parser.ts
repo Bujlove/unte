@@ -112,7 +112,7 @@ export async function extractTextFromTXT(buffer: Buffer): Promise<string> {
     console.log("Extracting text from TXT file...");
     
     // Try different encodings
-    const encodings = ['utf-8', 'utf-16le', 'utf-16be', 'latin1', 'ascii'];
+    const encodings: BufferEncoding[] = ['utf-8', 'utf-16le', 'utf-16be', 'latin1', 'ascii'];
     
     for (const encoding of encodings) {
       try {
