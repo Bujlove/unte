@@ -118,13 +118,13 @@ export async function POST(request: NextRequest) {
       email: parsedData.personal.email,
       phone: parsedData.personal.phone,
       location: parsedData.personal.location,
-      parsed_data: parsedData as any,
-      skills: skillsArray,
+      parsed_data: cleanParsedData as any,
+      skills: skillsArray || [],
       experience_years: parsedData.professional.totalExperience,
       last_position: parsedData.experience?.[0]?.position || null,
       last_company: parsedData.experience?.[0]?.company || null,
       education_level: parsedData.education?.[0]?.degree || null,
-      languages: parsedData.languages && parsedData.languages.length > 0 ? parsedData.languages as any : null,
+      languages: parsedData.languages && parsedData.languages.length > 0 ? parsedData.languages as any : [],
       embedding: embeddingToVector(embedding),
       summary_embedding: embeddingToVector(summaryEmbedding),
       status: "active",
@@ -133,7 +133,31 @@ export async function POST(request: NextRequest) {
       consent_given: consentGiven,
     };
     
-    console.log("Resume data to insert:", JSON.stringify(resumeData, null, 2));
+    // Clean parsed_data from empty arrays - convert null to empty arrays for JSONB fields
+    const cleanParsedData = {
+      ...parsedData,
+      experience: parsedData.experience || [],
+      education: parsedData.education || [],
+      languages: parsedData.languages || [],
+      additional: {
+        ...parsedData.additional,
+        certifications: parsedData.additional.certifications || [],
+        publications: parsedData.additional.publications || [],
+        projects: parsedData.additional.projects || [],
+      },
+      professional: {
+        ...parsedData.professional,
+        skills: {
+          ...parsedData.professional.skills,
+          soft: parsedData.professional.skills.soft || [],
+          tools: parsedData.professional.skills.tools || [],
+        }
+      }
+    };
+    
+    resumeData.parsed_data = cleanParsedData as any;
+    
+    console.log("Resume data prepared for database insert");
     
     const { data: resume, error: insertError } = await supabase
       .from("resumes")
