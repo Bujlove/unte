@@ -181,8 +181,8 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Function to create audit log entry
 CREATE OR REPLACE FUNCTION create_audit_log(
-    p_user_id UUID DEFAULT NULL,
     p_action TEXT,
+    p_user_id UUID DEFAULT NULL,
     p_resource_type TEXT DEFAULT NULL,
     p_resource_id UUID DEFAULT NULL,
     p_details JSONB DEFAULT NULL,
@@ -230,8 +230,8 @@ BEGIN
     
     -- Log subscription update
     PERFORM create_audit_log(
-        p_user_id,
         'subscription_updated',
+        p_user_id,
         'profiles',
         p_user_id,
         json_build_object(
