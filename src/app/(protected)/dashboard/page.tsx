@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { ResumeSearchResult } from "@/types/resume";
 
 interface ChatMessage {
@@ -9,11 +10,37 @@ interface ChatMessage {
 }
 
 export default function DashboardPage() {
+  const searchParams = useSearchParams();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<ResumeSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
+
+  // Загружаем предзаполненные требования из URL
+  useEffect(() => {
+    const query = searchParams.get("query");
+    const filtersParam = searchParams.get("filters");
+    
+    if (query && filtersParam) {
+      try {
+        const filters = JSON.parse(filtersParam);
+        
+        // Создаем сообщение с предзаполненными требованиями
+        const requirementsMessage = `Продолжаю поиск: ${query}. Требования: ${JSON.stringify(filters, null, 2)}`;
+        
+        setMessages([{
+          role: "user",
+          content: requirementsMessage,
+        }]);
+        
+        // Автоматически выполняем поиск
+        performSearch(filters);
+      } catch (error) {
+        console.error("Ошибка парсинга фильтров:", error);
+      }
+    }
+  }, [searchParams]);
 
   const handleSendMessage = async () => {
     if (!input.trim() || loading) return;

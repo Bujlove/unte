@@ -8,6 +8,7 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [consent, setConsent] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [result, setResult] = useState<{
     success: boolean;
     message: string;
@@ -15,61 +16,71 @@ export default function UploadPage() {
   } | null>(null);
 
   const onDrop = useCallback(
-    async (acceptedFiles: File[]) => {
-      if (!consent) {
-        alert("Пожалуйста, дайте согласие на обработку персональных данных");
-        return;
-      }
-
+    (acceptedFiles: File[]) => {
       const file = acceptedFiles[0];
       if (!file) return;
-
-      setUploading(true);
-      setProgress(10);
+      setSelectedFile(file);
       setResult(null);
+    },
+    []
+  );
 
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("consent", "true");
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      alert("Пожалуйста, выберите файл");
+      return;
+    }
 
-        setProgress(30);
+    if (!consent) {
+      alert("Пожалуйста, дайте согласие на обработку персональных данных");
+      return;
+    }
 
-        const response = await fetch("/api/resumes/upload", {
-          method: "POST",
-          body: formData,
+    setUploading(true);
+    setProgress(10);
+    setResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("consent", "true");
+
+      setProgress(30);
+
+      const response = await fetch("/api/resumes/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      setProgress(80);
+
+      const data = await response.json();
+
+      setProgress(100);
+
+      if (data.success) {
+        setResult({
+          success: true,
+          message: data.message,
+          uploadToken: data.uploadToken,
         });
-
-        setProgress(80);
-
-        const data = await response.json();
-
-        setProgress(100);
-
-        if (data.success) {
-          setResult({
-            success: true,
-            message: data.message,
-            uploadToken: data.uploadToken,
-          });
-        } else {
-          setResult({
-            success: false,
-            message: data.error || "Произошла ошибка при загрузке",
-          });
-        }
-      } catch (error) {
+        setSelectedFile(null);
+      } else {
         setResult({
           success: false,
-          message: "Ошибка сети. Попробуйте снова.",
+          message: data.error || "Произошла ошибка при загрузке",
         });
-      } finally {
-        setUploading(false);
-        setTimeout(() => setProgress(0), 1000);
       }
-    },
-    [consent]
-  );
+    } catch (error) {
+      setResult({
+        success: false,
+        message: "Ошибка сети. Попробуйте снова.",
+      });
+    } finally {
+      setUploading(false);
+      setTimeout(() => setProgress(0), 1000);
+    }
+  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -105,7 +116,11 @@ export default function UploadPage() {
           >
             <input {...getInputProps()} />
             <div className="space-y-4">
-              <div className="text-6xl">📄</div>
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+              </div>
               {isDragActive ? (
                 <p className="text-xl text-primary font-semibold">Отпустите файл здесь...</p>
               ) : (
@@ -119,6 +134,82 @@ export default function UploadPage() {
                 </>
               )}
             </div>
+          </div>
+
+          {selectedFile && (
+            <div className="mt-6 p-4 bg-gray-50 rounded-lg border">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">{selectedFile.name}</p>
+                    <p className="text-sm text-gray-500">
+                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedFile(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-6">
+            <label className="flex items-start space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                className="mt-1 h-5 w-5 text-primary border-gray-300 rounded focus:ring-primary"
+              />
+              <span className="text-sm text-gray-700">
+                Я даю согласие на обработку моих персональных данных. Резюме будет храниться 180
+                дней и автоматически удалено после этого срока. Вы можете удалить резюме в любой
+                момент, связавшись с нами.
+              </span>
+            </label>
+          </div>
+
+          <div className="mt-6">
+            <button
+              onClick={handleUpload}
+              disabled={!selectedFile || !consent || uploading}
+              className="w-full px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+            >
+              {uploading ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <span>Загружаем...</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  <span>Загрузить резюме</span>
+                </>
+              )}
+            </button>
+            {!selectedFile && (
+              <p className="text-sm text-gray-500 text-center mt-2">
+                Сначала выберите файл резюме
+              </p>
+            )}
+            {selectedFile && !consent && (
+              <p className="text-sm text-gray-500 text-center mt-2">
+                Подтвердите согласие на обработку данных
+              </p>
+            )}
           </div>
 
           {uploading && (
@@ -169,22 +260,6 @@ export default function UploadPage() {
               )}
             </div>
           )}
-
-          <div className="mt-6">
-            <label className="flex items-start space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={consent}
-                onChange={(e) => setConsent(e.target.checked)}
-                className="mt-1 h-5 w-5 text-primary border-gray-300 rounded focus:ring-primary"
-              />
-              <span className="text-sm text-gray-700">
-                Я даю согласие на обработку моих персональных данных. Резюме будет храниться 180
-                дней и автоматически удалено после этого срока. Вы можете удалить резюме в любой
-                момент, связавшись с нами.
-              </span>
-            </label>
-          </div>
         </div>
 
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
