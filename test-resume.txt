@@ -1,0 +1,32 @@
+Иван Петров
+Frontend Developer
+Email: ivan.petrov@example.com
+Телефон: +7 (999) 123-45-67
+Город: Москва
+
+ОПЫТ РАБОТЫ:
+2020-2023: Senior Frontend Developer в Яндекс
+- Разработка пользовательских интерфейсов на React
+- Работа с TypeScript и Redux
+- Участие в архитектурных решениях
+
+2018-2020: Frontend Developer в Сбер
+- Разработка веб-приложений на JavaScript
+- Работа с Vue.js и Node.js
+- Интеграция с REST API
+
+НАВЫКИ:
+- JavaScript, TypeScript
+- React, Vue.js, Angular
+- Node.js, Express
+- HTML5, CSS3, SASS
+- Git, Webpack, Docker
+- PostgreSQL, MongoDB
+
+ОБРАЗОВАНИЕ:
+2014-2018: МГУ, Факультет ВМК, Специальность "Прикладная математика и информатика"
+
+ДОПОЛНИТЕЛЬНО:
+- Английский язык (продвинутый)
+- Опыт работы в команде
+- Участие в open-source проектах
