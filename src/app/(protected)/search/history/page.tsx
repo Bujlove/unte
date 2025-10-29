@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import Image from "next/image";
@@ -24,9 +24,9 @@ export default function SearchHistoryPage() {
 
   useEffect(() => {
     fetchSearchHistory();
-  }, []);
+  }, [fetchSearchHistory]);
 
-  const fetchSearchHistory = async () => {
+  const fetchSearchHistory = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -52,7 +52,7 @@ export default function SearchHistoryPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("ru-RU", {
