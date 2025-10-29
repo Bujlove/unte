@@ -108,6 +108,28 @@ export async function POST(request: NextRequest) {
       ? supabase.storage.from("resumes").getPublicUrl(fileName).data.publicUrl
       : null;
 
+    // Clean parsed_data from empty arrays - convert null to empty arrays for JSONB fields
+    const cleanParsedData = {
+      ...parsedData,
+      experience: parsedData.experience || [],
+      education: parsedData.education || [],
+      languages: parsedData.languages || [],
+      additional: {
+        ...parsedData.additional,
+        certifications: parsedData.additional.certifications || [],
+        publications: parsedData.additional.publications || [],
+        projects: parsedData.additional.projects || [],
+      },
+      professional: {
+        ...parsedData.professional,
+        skills: {
+          ...parsedData.professional.skills,
+          soft: parsedData.professional.skills.soft || [],
+          tools: parsedData.professional.skills.tools || [],
+        }
+      }
+    };
+
     // Insert resume into database
     const resumeData = {
       file_url: fileUrl,
@@ -132,30 +154,6 @@ export async function POST(request: NextRequest) {
       upload_token: uploadToken,
       consent_given: consentGiven,
     };
-    
-    // Clean parsed_data from empty arrays - convert null to empty arrays for JSONB fields
-    const cleanParsedData = {
-      ...parsedData,
-      experience: parsedData.experience || [],
-      education: parsedData.education || [],
-      languages: parsedData.languages || [],
-      additional: {
-        ...parsedData.additional,
-        certifications: parsedData.additional.certifications || [],
-        publications: parsedData.additional.publications || [],
-        projects: parsedData.additional.projects || [],
-      },
-      professional: {
-        ...parsedData.professional,
-        skills: {
-          ...parsedData.professional.skills,
-          soft: parsedData.professional.skills.soft || [],
-          tools: parsedData.professional.skills.tools || [],
-        }
-      }
-    };
-    
-    resumeData.parsed_data = cleanParsedData as any;
     
     console.log("Resume data prepared for database insert");
     
