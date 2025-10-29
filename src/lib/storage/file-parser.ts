@@ -51,6 +51,17 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
  */
 export async function extractTextFromDOCX(buffer: Buffer): Promise<string> {
   try {
+    // Check if file is actually a valid DOCX (ZIP) file
+    const isZipFile = buffer[0] === 0x50 && buffer[1] === 0x4B; // ZIP signature
+    if (!isZipFile) {
+      console.log("File doesn't appear to be a valid DOCX/ZIP file, trying plain text extraction");
+      const textContent = buffer.toString("utf-8");
+      if (textContent && textContent.length > 50) {
+        return textContent;
+      }
+      throw new Error("File is not a valid DOCX format");
+    }
+
     // Dynamic import to avoid issues in client-side
     const mammoth = await import("mammoth");
     const result = await mammoth.extractRawText({ buffer });
