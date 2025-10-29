@@ -92,7 +92,9 @@ export async function POST(request: NextRequest) {
     const uploadToken = nanoid(32);
 
     // Upload file to Supabase Storage
-    const fileName = `${Date.now()}-${file.name}`;
+    // Sanitize filename to avoid storage errors
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const fileName = `${Date.now()}-${sanitizedFileName}`;
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("resumes")
       .upload(fileName, buffer, {
@@ -147,7 +149,7 @@ export async function POST(request: NextRequest) {
       last_position: parsedData.experience?.[0]?.position || null,
       last_company: parsedData.experience?.[0]?.company || null,
       education_level: parsedData.education?.[0]?.degree || null,
-      languages: parsedData.languages && parsedData.languages.length > 0 ? parsedData.languages as any : null,
+      languages: parsedData.languages && parsedData.languages.length > 0 ? parsedData.languages : null,
       embedding: embeddingToVector(embedding),
       summary_embedding: embeddingToVector(summaryEmbedding),
       status: "active",
