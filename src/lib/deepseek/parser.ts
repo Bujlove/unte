@@ -5,9 +5,15 @@ import { ParsedResume } from "@/types/resume";
  * Parse resume text into structured data using DeepSeek
  */
 export async function parseResumeText(text: string): Promise<ParsedResume> {
-  const prompt = `Ты - эксперт по анализу резюме. Проанализируй следующее резюме и извлеки из него максимально подробную структурированную информацию.
+  const prompt = `Ты - эксперт по анализу резюме. Проанализируй следующий текст резюме и извлеки из него максимально подробную структурированную информацию.
 
-ВАЖНО: Будь очень внимательным к деталям. Извлекай ВСЕ возможные данные.
+ВАЖНО: 
+- Будь очень внимательным к деталям
+- Извлекай ВСЕ возможные данные, даже если они написаны в разных форматах
+- Если информация не найдена, используй null
+- Если имя не найдено, попробуй найти в email или других местах
+- Если должность не указана, попробуй определить по опыту работы
+- Будь гибким в интерпретации данных
 
 Верни ТОЛЬКО валидный JSON в следующем формате:
 {
@@ -213,6 +219,8 @@ export function createResumeSummary(parsedData: ParsedResume) {
     workType.push('hybrid'); // Default
   }
 
+  const extractedSkills = extractSkills(parsedData);
+  
   return {
     full_name: parsedData.personal.fullName || '',
     email: parsedData.personal.email || '',
@@ -222,13 +230,68 @@ export function createResumeSummary(parsedData: ParsedResume) {
     current_company: currentExperience?.company || '',
     experience_years: parsedData.professional.totalExperience || 0,
     education_level: parsedData.education[0]?.degree || '',
-    skills: extractSkills(parsedData),
-    languages: languages,
+    skills: extractedSkills.length > 0 ? extractedSkills : null,
+    languages: languages.length > 0 ? languages : null,
     salary_expectation: '', // Will be extracted by AI if mentioned
     availability: 'immediately', // Default
-    work_type: workType,
+    work_type: workType.length > 0 ? workType : null,
     summary: parsedData.professional.summary || '',
-    key_achievements: keyAchievements
+    key_achievements: keyAchievements.length > 0 ? keyAchievements : null
+  };
+}
+
+/**
+ * Fallback parsing with basic text extraction
+ */
+function createFallbackResume(text: string): ParsedResume {
+  console.log("Creating fallback resume from text");
+  
+  // Basic text extraction
+  const emailMatch = text.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+  const phoneMatch = text.match(/(\+?[1-9]\d{1,14})/);
+  
+  // Try to extract name from first line or email
+  let fullName = '';
+  const lines = text.split('\n').filter(line => line.trim().length > 0);
+  if (lines.length > 0) {
+    const firstLine = lines[0].trim();
+    if (firstLine.length < 50 && !firstLine.includes('@')) {
+      fullName = firstLine;
+    }
+  }
+  
+  // If no name found, try to extract from email
+  if (!fullName && emailMatch) {
+    fullName = emailMatch[1].split('@')[0].replace(/[._]/g, ' ');
+  }
+  
+  return {
+    personal: {
+      fullName: fullName || 'Не указано',
+      email: emailMatch ? emailMatch[1] : undefined,
+      phone: phoneMatch ? phoneMatch[1] : undefined,
+      location: undefined,
+      birthDate: undefined,
+      photo: undefined
+    },
+    professional: {
+      title: 'Соискатель',
+      summary: 'Резюме загружено, требуется ручная обработка',
+      totalExperience: 0,
+      skills: {
+        hard: [],
+        soft: [],
+        tools: []
+      }
+    },
+    experience: [],
+    education: [],
+    languages: [],
+    additional: {
+      certifications: [],
+      publications: [],
+      projects: []
+    }
   };
 }
 
@@ -243,8 +306,12 @@ export async function parseResumeTextWithRetry(text: string, maxRetries: number 
       console.log(`Parsing attempt ${attempt}/${maxRetries}`);
       const result = await parseResumeText(text);
       
-      // Validate that we got meaningful data
-      if (!result.personal.fullName && !result.professional.title) {
+      // Validate that we got some meaningful data (more flexible)
+      const hasPersonalInfo = result.personal.fullName || result.personal.email || result.personal.phone;
+      const hasProfessionalInfo = result.professional.title || result.professional.skills.hard.length > 0 || result.experience.length > 0;
+      const hasAnyData = hasPersonalInfo || hasProfessionalInfo || result.education.length > 0;
+      
+      if (!hasAnyData) {
         throw new Error('No meaningful data extracted');
       }
       
@@ -260,6 +327,8 @@ export async function parseResumeTextWithRetry(text: string, maxRetries: number 
     }
   }
   
-  throw new Error(`Failed to parse resume after ${maxRetries} attempts: ${lastError?.message}`);
+  // If all attempts failed, create a fallback resume
+  console.log("All parsing attempts failed, creating fallback resume");
+  return createFallbackResume(text);
 }
 

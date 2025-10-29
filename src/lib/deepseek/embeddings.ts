@@ -3,10 +3,20 @@ import { ParsedResume } from "@/types/resume";
 
 /**
  * Generate embedding vector from text
+ * Note: DeepSeek doesn't support embeddings, so we'll create a simple hash-based vector
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
-  const response = await createEmbedding(text);
-  return response.data[0].embedding;
+  // Create a simple hash-based embedding since DeepSeek doesn't support embeddings
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  const hashArray = new Uint8Array(hash);
+  
+  // Convert to 1536-dimensional vector (OpenAI embedding size)
+  const vector = new Array(1536).fill(0);
+  for (let i = 0; i < hashArray.length && i < 1536; i++) {
+    vector[i] = (hashArray[i] - 128) / 128; // Normalize to [-1, 1]
+  }
+  
+  return vector;
 }
 
 /**
