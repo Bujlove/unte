@@ -245,7 +245,7 @@ export function createResumeSummary(parsedData: ParsedResume) {
 /**
  * Fallback parsing with basic text extraction
  */
-function createFallbackResume(text: string): ParsedResume {
+export function createFallbackResume(text: string): ParsedResume {
   console.log("Creating fallback resume from text");
   
   // Basic text extraction
