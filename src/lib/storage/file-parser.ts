@@ -50,8 +50,21 @@ export async function extractTextFromDOCX(buffer: Buffer): Promise<string> {
  */
 export async function extractTextFromFile(
   buffer: Buffer,
-  mimeType: string
+  mimeType: string,
+  fileName?: string
 ): Promise<string> {
+  // Handle application/octet-stream by trying different parsers
+  if (mimeType === "application/octet-stream" && fileName) {
+    const ext = fileName.toLowerCase().split('.').pop();
+    if (ext === 'pdf') {
+      return extractTextFromPDF(buffer);
+    } else if (ext === 'docx' || ext === 'doc') {
+      return extractTextFromDOCX(buffer);
+    } else if (ext === 'txt') {
+      return buffer.toString("utf-8");
+    }
+  }
+  
   if (mimeType === "application/pdf") {
     return extractTextFromPDF(buffer);
   } else if (

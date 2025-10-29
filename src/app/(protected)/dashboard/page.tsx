@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { ResumeSearchResult } from "@/types/resume";
+import { ResumeSearchResult, TextSearchResult } from "@/types/resume";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -14,7 +14,7 @@ export default function DashboardPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [searchResults, setSearchResults] = useState<ResumeSearchResult[]>([]);
+  const [searchResults, setSearchResults] = useState<TextSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
 
   // Загружаем предзаполненные требования из URL
@@ -94,10 +94,20 @@ export default function DashboardPage() {
     setSearching(true);
 
     try {
-      const response = await fetch("/api/search/semantic", {
+      // Convert requirements to search query and filters
+      const query = requirements.position || requirements.query || "кандидат";
+      const filters = {
+        position: requirements.position,
+        skills: requirements.skills,
+        experienceYears: requirements.experienceYears,
+        location: requirements.location,
+        educationLevel: requirements.educationLevel,
+      };
+
+      const response = await fetch("/api/search/text", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requirements }),
+        body: JSON.stringify({ query, filters }),
       });
 
       const data = await response.json();
@@ -242,16 +252,16 @@ export default function DashboardPage() {
                   className="border rounded-lg p-4 hover:shadow-md transition cursor-pointer"
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-lg">{candidate.fullName}</h3>
+                    <h3 className="font-semibold text-lg">{candidate.full_name}</h3>
                     <span className="bg-primary text-white px-3 py-1 rounded-full text-sm">
-                      {candidate.relevanceScore}%
+                      {Math.round(candidate.score)}%
                     </span>
                   </div>
                   <p className="text-gray-600 mb-2">
-                    {candidate.lastPosition} в {candidate.lastCompany}
+                    {candidate.current_position} в {candidate.current_company}
                   </p>
                   <p className="text-sm text-gray-500 mb-2">
-                    Опыт: {candidate.experienceYears} лет | {candidate.location}
+                    Опыт: {candidate.experience_years} лет | {candidate.location}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {candidate.skills.slice(0, 5).map((skill, idx) => (

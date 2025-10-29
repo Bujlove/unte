@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { validateFileSize, validateFileType, extractTextFromFile } from "@/lib/storage/file-parser";
 import { parseResumeTextWithRetry, calculateQualityScore, extractSkills, createResumeSummary } from "@/lib/deepseek/parser";
-import { generateResumeEmbedding, generateSummaryEmbedding, embeddingToVector } from "@/lib/deepseek/embeddings";
+// Removed embeddings import - using text search instead
 import { generateToken } from "@/lib/utils";
 import { nanoid } from "nanoid";
 
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
 
     // Extract text from file
-    const text = await extractTextFromFile(buffer, file.type);
+    const text = await extractTextFromFile(buffer, file.type, file.name);
 
     if (!text || text.length < 100) {
       return NextResponse.json(
@@ -75,9 +75,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate embeddings
-    const embedding = await generateResumeEmbedding(parsedData);
-    const summaryEmbedding = await generateSummaryEmbedding(parsedData);
+    // Skip embeddings - using text search instead
 
     // Calculate quality score
     const qualityScore = calculateQualityScore(parsedData);
@@ -125,8 +123,8 @@ export async function POST(request: NextRequest) {
         last_company: parsedData.experience[0]?.company || null,
         education_level: parsedData.education[0]?.degree || null,
         languages: parsedData.languages.length > 0 ? parsedData.languages as any : null,
-        embedding: embeddingToVector(embedding),
-        summary_embedding: embeddingToVector(summaryEmbedding),
+        embedding: null, // Using text search instead of embeddings
+        summary_embedding: null, // Using text search instead of embeddings
         status: "active",
         quality_score: qualityScore,
         upload_token: uploadToken,

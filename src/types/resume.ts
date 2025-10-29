@@ -105,3 +105,17 @@ export interface ResumeSearchResult {
   };
 }
 
+export interface TextSearchResult {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  location: string;
+  current_position: string;
+  current_company: string;
+  experience_years: number;
+  skills: string[];
+  summary: string;
+  score: number;
+}
+
