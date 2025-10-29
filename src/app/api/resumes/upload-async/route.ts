@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Start async processing (don't await)
-    processResumeAsync(resume.id, buffer, file.type, file.name).catch(async error => {
+    processResumeSimple(resume.id).catch(async error => {
       console.error("Async processing error:", error);
       // Update status to failed
       try {
@@ -128,115 +128,33 @@ export async function POST(request: NextRequest) {
 /**
  * Process resume asynchronously
  */
-async function processResumeAsync(resumeId: string, buffer: Buffer, mimeType: string, fileName: string) {
+async function processResumeSimple(resumeId: string) {
   try {
-    console.log(`Starting async processing for resume ${resumeId}`);
+    console.log(`Starting simple processing for resume ${resumeId}`);
     
-    // Import processing functions
-    const { extractTextFromFile } = await import("@/lib/storage/file-parser");
-    const { parseResumeTextWithJinaAndRetry } = await import("@/lib/jina/parser");
-    const { calculateQualityScore, extractSkills, createResumeSummary } = await import("@/lib/deepseek/parser");
-    const { generateResumeEmbedding, generateSummaryEmbedding, embeddingToVector } = await import("@/lib/jina/embeddings");
-    const { createAdminClient } = await import("@/lib/supabase/server");
-
-    // Extract text from file
-    const text = await extractTextFromFile(buffer, mimeType, fileName);
-
-    if (!text || text.length < 100) {
-      throw new Error("File appears to be empty or too short");
-    }
-
-    // Parse resume with AI
-    console.log("Starting resume parsing...");
-    const parsedData = await parseResumeTextWithJinaAndRetry(text);
-    console.log("Resume parsed successfully");
-
-    // Generate embeddings
-    const embedding = await generateResumeEmbedding(parsedData);
-    const summaryEmbedding = await generateSummaryEmbedding(parsedData);
-
-    // Calculate quality score
-    const qualityScore = calculateQualityScore(parsedData);
-
-    // Extract skills array
-    const skillsArray = extractSkills(parsedData);
-
-    // Clean parsed_data - keep null for empty arrays to match database schema
-    const cleanParsedData = {
-      ...parsedData,
-      experience: parsedData.experience && parsedData.experience.length > 0 ? parsedData.experience : null,
-      education: parsedData.education && parsedData.education.length > 0 ? parsedData.education : null,
-      languages: parsedData.languages && parsedData.languages.length > 0 ? JSON.stringify(parsedData.languages) : null,
-      additional: {
-        ...parsedData.additional,
-        certifications: parsedData.additional.certifications && parsedData.additional.certifications.length > 0 ? parsedData.additional.certifications : null,
-        publications: parsedData.additional.publications && parsedData.additional.publications.length > 0 ? parsedData.additional.publications : null,
-        projects: parsedData.additional.projects && parsedData.additional.projects.length > 0 ? parsedData.additional.projects : null,
+    // Call the processing endpoint
+    const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/resumes/process`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-      professional: {
-        ...parsedData.professional,
-        skills: {
-          ...parsedData.professional.skills,
-          soft: parsedData.professional.skills.soft && parsedData.professional.skills.soft.length > 0 ? parsedData.professional.skills.soft : null,
-          tools: parsedData.professional.skills.tools && parsedData.professional.skills.tools.length > 0 ? parsedData.professional.skills.tools : null,
-        }
-      }
-    };
+      body: JSON.stringify({ resumeId })
+    });
 
-    // Update resume with parsed data
-    const supabase = await createAdminClient();
-    const { error: updateError } = await supabase
-      .from("resumes")
-      .update({
-        full_name: parsedData.personal.fullName,
-        email: parsedData.personal.email,
-        phone: parsedData.personal.phone,
-        location: parsedData.personal.location,
-        parsed_data: cleanParsedData as any,
-        skills: skillsArray && skillsArray.length > 0 ? skillsArray : null,
-        experience_years: parsedData.professional.totalExperience,
-        last_position: parsedData.experience?.[0]?.position || null,
-        last_company: parsedData.experience?.[0]?.company || null,
-        education_level: parsedData.education?.[0]?.degree || null,
-        languages: parsedData.languages && parsedData.languages.length > 0 ? JSON.stringify(parsedData.languages) : null,
-        embedding: embeddingToVector(embedding),
-        summary_embedding: embeddingToVector(summaryEmbedding),
-        status: "active",
-        quality_score: qualityScore,
-      })
-      .eq("id", resumeId);
-
-    if (updateError) {
-      console.error("Database update error:", updateError);
-      throw updateError;
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Processing failed');
     }
 
-    // Create summary data for quick access
-    console.log("Creating resume summary...");
-    const summaryData = createResumeSummary(parsedData);
-    
-    // Insert summary into resume_summaries table
-    const { error: summaryError } = await supabase
-      .from("resume_summaries")
-      .insert({
-        resume_id: resumeId,
-        ...summaryData
-      });
-
-    if (summaryError) {
-      console.error("Summary insert error:", summaryError);
-      // Don't fail the whole process for summary error
-    } else {
-      console.log("Resume summary created successfully");
-    }
-
-    console.log(`Resume ${resumeId} processed successfully`);
+    const result = await response.json();
+    console.log(`Resume ${resumeId} processed successfully:`, result.data);
 
   } catch (error) {
-    console.error(`Async processing failed for resume ${resumeId}:`, error);
+    console.error(`Simple processing failed for resume ${resumeId}:`, error);
     
     // Update status to failed
     try {
+      const { createAdminClient } = await import("@/lib/supabase/server");
       const supabase = await createAdminClient();
       await supabase
         .from("resumes")
