@@ -7,7 +7,6 @@ import Link from "next/link";
 export default function UploadPage() {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [consent, setConsent] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [result, setResult] = useState<{
     success: boolean;
@@ -28,11 +27,6 @@ export default function UploadPage() {
   const handleUpload = async () => {
     if (!selectedFile) {
       alert("Пожалуйста, выберите файл");
-      return;
-    }
-
-    if (!consent) {
-      alert("Пожалуйста, дайте согласие на обработку персональных данных");
       return;
     }
 
@@ -165,25 +159,9 @@ export default function UploadPage() {
           )}
 
           <div className="mt-6">
-            <label className="flex items-start space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={consent}
-                onChange={(e) => setConsent(e.target.checked)}
-                className="mt-1 h-5 w-5 text-primary border-gray-300 rounded focus:ring-primary"
-              />
-              <span className="text-sm text-gray-700">
-                Я даю согласие на обработку моих персональных данных. Резюме будет храниться 180
-                дней и автоматически удалено после этого срока. Вы можете удалить резюме в любой
-                момент, связавшись с нами.
-              </span>
-            </label>
-          </div>
-
-          <div className="mt-6">
             <button
               onClick={handleUpload}
-              disabled={!selectedFile || !consent || uploading}
+              disabled={!selectedFile || uploading}
               className="w-full px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
             >
               {uploading ? (
@@ -205,9 +183,10 @@ export default function UploadPage() {
                 Сначала выберите файл резюме
               </p>
             )}
-            {selectedFile && !consent && (
-              <p className="text-sm text-gray-500 text-center mt-2">
-                Подтвердите согласие на обработку данных
+            {selectedFile && (
+              <p className="text-xs text-gray-500 text-center mt-2">
+                Нажимая кнопку "Загрузить резюме", вы даете согласие на обработку персональных данных. 
+                Резюме будет храниться 180 дней и автоматически удалено после этого срока.
               </p>
             )}
           </div>
