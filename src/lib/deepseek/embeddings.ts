@@ -124,7 +124,7 @@ function createSummaryText(parsedData: ParsedResume): string {
   parts.push(`Опыт ${parsedData.professional.totalExperience} лет`);
   parts.push(`Ключевые навыки: ${parsedData.professional.skills.hard.slice(0, 10).join(", ")}`);
 
-  if (parsedData.experience[0]) {
+  if (parsedData.experience && parsedData.experience[0]) {
     parts.push(`Последняя должность: ${parsedData.experience[0].position}`);
   }
 
