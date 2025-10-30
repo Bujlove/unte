@@ -51,7 +51,7 @@ export async function processChatMessage(
 4. Учитывай контекст - не спрашивай то, что уже известно
 5. Будь дружелюбным и профессиональным
 6. Когда все ключевые параметры собраны, предложи начать поиск
-7. Используй markdown для форматирования (списки, жирный текст)
+7. Отвечай простым текстом, без HTML и без Markdown-разметки
 
 Примеры вопросов:
 - "На какую должность вы ищете кандидата?"
@@ -253,19 +253,10 @@ ${conversationText}
  * Format chat response with proper markdown
  */
 export function formatChatResponse(text: string): string {
-  // Улучшенное форматирование
-  return text
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Жирный текст
-    .replace(/\*(.*?)\*/g, '<em>$1</em>') // Курсив
-    .replace(/^\- (.*$)/gm, '<li>$1</li>') // Списки
-    .replace(/^\d+\. (.*$)/gm, '<li>$1</li>') // Нумерованные списки
-    .replace(/\n\n/g, '</p><p>') // Абзацы
-    .replace(/^(.*)$/gm, '<p>$1</p>') // Обернуть в параграфы
-    .replace(/<p><li>/g, '<ul><li>') // Начало списка
-    .replace(/<\/li><\/p>/g, '</li></ul>') // Конец списка
-    .replace(/<p><\/p>/g, '') // Убрать пустые параграфы
-    .replace(/<p>(<ul>)/g, '$1') // Убрать параграфы вокруг списков
-    .replace(/(<\/ul>)<\/p>/g, '$1');
+  // Возвращаем простой текст: убираем HTML/Markdown, нормализуем пробелы
+  const noTags = text.replace(/<[^>]+>/g, '');
+  const noMd = noTags.replace(/\*\*?|__|`/g, '');
+  return noMd.replace(/[\t ]+/g, ' ').replace(/\s*\n\s*/g, '\n').trim();
 }
 
 /**
