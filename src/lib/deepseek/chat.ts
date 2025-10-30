@@ -302,7 +302,8 @@ export async function streamChatResponse(messages: ChatMessage[]) {
     })),
   ];
 
-  return createStreamingChatCompletion(chatMessages, {
+  // Fallback to non-streaming completion through provider client
+  return createChatCompletion(chatMessages, {
     temperature: 0.7,
     maxTokens: 500,
   });
