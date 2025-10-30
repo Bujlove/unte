@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { generateSearchEmbedding, cosineSimilarity } from "@/lib/jina/embeddings";
+import { cosineSimilarity } from "@/lib/jina/embeddings";
+import { generateEmbedding } from "@/lib/embeddings/index";
 import { openai } from "@/lib/openai/client";
 
 export async function POST(request: NextRequest) {
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
     const searchQuery = createSearchQuery(requirements);
     
     // Generate embedding for search
-    const searchEmbedding = await generateSearchEmbedding(searchQuery);
+    const searchEmbedding = await generateEmbedding(searchQuery);
 
     // Try DB-side vector search via RPC (pgvector); fallback to in-memory cosine if RPC not available
     let results: any[] = [];

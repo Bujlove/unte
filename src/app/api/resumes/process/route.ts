@@ -4,7 +4,9 @@ import { extractTextFromFile } from "@/lib/storage/file-parser";
 import { parseResumeTextWithRetry as parseWithDeepseek, calculateQualityScore, extractSkills, createResumeSummary } from "@/lib/deepseek/parser";
 import { normalizeSkills } from "@/lib/search/normalize";
 import { parseResumeTextWithJinaAndRetry } from "@/lib/jina/parser";
-import { generateResumeEmbedding, generateSummaryEmbedding, embeddingToVector } from "@/lib/jina/embeddings";
+import { parseResumeWithOpenAI } from "@/lib/openai/parser";
+import { embeddingToVector } from "@/lib/jina/embeddings";
+import { generateEmbedding } from "@/lib/embeddings/index";
 
 export async function POST(request: NextRequest) {
   try {
@@ -68,19 +70,27 @@ export async function POST(request: NextRequest) {
       .replace(/\s+/g, ' ')
       .trim();
 
-    // AI parsing: DeepSeek → fallback Jina
+    // AI parsing: DeepSeek → fallback OpenAI → fallback Jina
     let parsed;
     try {
       parsed = await parseWithDeepseek(normalized);
     } catch (e) {
-      parsed = await parseResumeTextWithJinaAndRetry(normalized);
+      try {
+        parsed = await parseResumeWithOpenAI(normalized);
+      } catch (e2) {
+        parsed = await parseResumeTextWithJinaAndRetry(normalized);
+      }
     }
 
     const qualityScore = calculateQualityScore(parsed);
     const skills = extractSkills(parsed);
     const normalizedSkills = await normalizeSkills(skills || undefined);
-    const embedding = await generateResumeEmbedding(parsed);
-    const summaryEmbedding = await generateSummaryEmbedding(parsed);
+    const embedding = await generateEmbedding(JSON.stringify({
+      personal: parsed.personal,
+      professional: parsed.professional,
+      skills: skills || [],
+    }));
+    const summaryEmbedding = await generateEmbedding(`${parsed.personal.fullName || ''} ${parsed.professional.title || ''} ${(skills||[]).slice(0,10).join(' ')}`);
 
     // Clean parsed_data
     const cleanParsedData = {

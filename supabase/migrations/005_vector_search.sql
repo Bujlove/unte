@@ -28,14 +28,15 @@ RETURNS TABLE (
     r.last_company,
     r.experience_years,
     COALESCE(
-      CASE 
-        WHEN pg_typeof(r.skills)::text = 'jsonb' THEN 
-          ARRAY(SELECT jsonb_array_elements_text(r.skills))
-        WHEN pg_typeof(r.skills)::text = 'text[]' THEN
-          r.skills
-        ELSE
-          ARRAY[]::text[]
-      END,
+      ARRAY(
+        SELECT jsonb_array_elements_text(
+          CASE
+            WHEN r.skills IS NULL THEN '[]'::jsonb
+            WHEN pg_typeof(r.skills)::text = 'jsonb' THEN (r.skills)::jsonb
+            ELSE to_jsonb(r.skills)
+          END
+        )
+      ),
       ARRAY[]::text[]
     ) AS skills,
     r.embedding,

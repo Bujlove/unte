@@ -1,4 +1,4 @@
-import { createChatCompletion, createStreamingChatCompletion } from "./client";
+import { createChatCompletion } from "@/lib/chat/client";
 import OpenAI from "openai";
 
 /**
