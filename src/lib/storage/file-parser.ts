@@ -11,9 +11,15 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
     // Try PDF.js first (better quality)
     const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
     
+    // Configure PDF.js to work without canvas
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+    
     const loadingTask = pdfjsLib.getDocument({
-      data: buffer,
+      data: new Uint8Array(buffer),
       useSystemFonts: true,
+      disableFontFace: true,
+      disableRange: true,
+      disableStream: true,
     });
     
     const pdf = await loadingTask.promise;
@@ -38,7 +44,7 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   try {
     // Fallback to pdf-parse
     const pdfParse = (await import("pdf-parse")).default;
-    const data = await pdfParse(Buffer.from(buffer));
+    const data = await pdfParse(new Uint8Array(buffer));
     return data.text;
   } catch (error) {
     console.error("Error parsing PDF:", error);

@@ -253,10 +253,15 @@ export function createResumeSummary(parsedData: ParsedResume) {
  */
 export function createFallbackResume(text: string): ParsedResume {
   console.log("Creating fallback resume from text");
+  console.log(`Text length: ${text.length}`);
+  console.log(`First 200 chars: ${text.substring(0, 200)}`);
   
   // Basic text extraction
   const emailMatch = text.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
   const phoneMatch = text.match(/(\+?[1-9]\d{1,14})/);
+  
+  console.log(`Email found: ${emailMatch ? emailMatch[1] : 'none'}`);
+  console.log(`Phone found: ${phoneMatch ? phoneMatch[1] : 'none'}`);
   
   // Try to extract name from first line or email
   let fullName = '';

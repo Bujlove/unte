@@ -40,10 +40,14 @@ export async function parseResumeTextWithJinaAndRetry(text: string, maxRetries: 
       console.log(`Jina AI + DeepSeek parsing attempt ${attempt}/${maxRetries}`);
       const result = await parseResumeTextWithJina(text);
       
-      // Validate that we got some meaningful data
+      // Validate that we got some meaningful data (more flexible)
       const hasPersonalInfo = result.personal.fullName || result.personal.email || result.personal.phone;
-      const hasProfessionalInfo = result.professional.title || result.professional.skills.hard.length > 0 || (result.experience && result.experience.length > 0);
-      const hasAnyData = hasPersonalInfo || hasProfessionalInfo || (result.education && result.education.length > 0);
+      const hasProfessionalInfo = result.professional.title || (result.professional.skills.hard && result.professional.skills.hard.length > 0) || (result.experience && result.experience.length > 0);
+      const hasAnyData = hasPersonalInfo || hasProfessionalInfo || (result.education && result.education.length > 0) || (result.professional.summary && result.professional.summary.length > 10);
+      
+      console.log(`Validation: hasPersonalInfo=${hasPersonalInfo}, hasProfessionalInfo=${hasProfessionalInfo}, hasAnyData=${hasAnyData}`);
+      console.log(`Personal: name=${result.personal.fullName}, email=${result.personal.email}, phone=${result.personal.phone}`);
+      console.log(`Professional: title=${result.professional.title}, skills=${result.professional.skills.hard?.length || 0}, experience=${result.experience?.length || 0}`);
       
       if (!hasAnyData) {
         throw new Error('No meaningful data extracted');
