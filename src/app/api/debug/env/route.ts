@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not available' }, { status: 404 });
+  }
   const envVars = {
     DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY ? "Set" : "Not set",
     JINA_API_KEY: process.env.JINA_API_KEY ? "Set" : "Not set", 

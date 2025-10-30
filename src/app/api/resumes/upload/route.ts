@@ -6,6 +6,7 @@ import { calculateQualityScore, extractSkills, createResumeSummary } from "@/lib
 import { generateResumeEmbedding, generateSummaryEmbedding, embeddingToVector } from "@/lib/jina/embeddings";
 import { generateToken } from "@/lib/utils";
 import { nanoid } from "nanoid";
+import { logger } from "@/lib/utils/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,11 +52,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse resume with Jina AI (with retry logic)
-    console.log("Starting resume parsing with Jina AI...");
+    logger.info("Starting resume parsing with Jina AI...");
     const parsedData = await parseResumeTextWithJinaAndRetry(text);
-    console.log("Resume parsed successfully with Jina AI");
-    console.log("Parsed data skills:", parsedData.professional.skills);
-    console.log("Parsed data languages:", parsedData.languages);
+    logger.info("Resume parsed successfully with Jina AI");
+    logger.debug("Parsed data skills:", parsedData.professional.skills);
+    logger.debug("Parsed data languages:", parsedData.languages);
 
     // Check for duplicates
     const supabase = await createAdminClient();
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      console.error("Storage upload error:", uploadError);
+      logger.warn("Storage upload error:", uploadError);
       // Continue anyway - file storage is not critical
     }
 
@@ -158,7 +159,7 @@ export async function POST(request: NextRequest) {
       consent_given: consentGiven,
     };
     
-    console.log("Resume data prepared for database insert");
+    logger.debug("Resume data prepared for database insert");
     
     const { data: resume, error: insertError } = await supabase
       .from("resumes")
@@ -167,12 +168,12 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (insertError) {
-      console.error("Database insert error:", insertError);
+      logger.error("Database insert error:", insertError);
       return NextResponse.json({ error: "Failed to save resume" }, { status: 500 });
     }
 
     // Create summary data for quick access
-    console.log("Creating resume summary...");
+    logger.info("Creating resume summary...");
     const summaryData = createResumeSummary(parsedData);
     
     // Generate unique quick_id
@@ -189,10 +190,10 @@ export async function POST(request: NextRequest) {
       });
 
     if (summaryError) {
-      console.error("Summary insert error:", summaryError);
+      logger.warn("Summary insert error:", summaryError);
       // Don't fail the whole process for summary error
     } else {
-      console.log("Resume summary created successfully");
+      logger.info("Resume summary created successfully");
     }
 
     return NextResponse.json({
@@ -210,7 +211,7 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error("Resume upload error:", error);
+    logger.error("Resume upload error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to process resume" },
       { status: 500 }

@@ -4,6 +4,9 @@ import { extractTextFromFile } from "@/lib/storage/file-parser";
 import { parseResumeTextImproved } from "@/lib/improved-parser";
 
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not available' }, { status: 404 });
+  }
   try {
     console.log("🚀 Начинаем чистую загрузку резюме...");
     

@@ -2,7 +2,7 @@
  * Billing and subscription types
  */
 
-export type SubscriptionType = "trial" | "start" | "pro";
+export type SubscriptionType = "free" | "start";
 export type SubscriptionStatus = "active" | "cancelled" | "expired";
 
 export interface SubscriptionPlan {
@@ -37,26 +37,26 @@ export interface Payment {
 
 export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
-    id: "trial",
-    name: "Пробный",
+    id: "free",
+    name: "Бесплатный",
     price: 0,
     currency: "RUB",
     interval: "month",
     searchesLimit: 10,
     features: [
-      "10 поисков кандидатов",
+      "10 поисков в месяц",
       "AI-ассистент",
       "Базовые фильтры",
-      "7 дней доступа",
     ],
   },
   {
     id: "start",
     name: "Старт",
-    price: 5900,
+    price: 729,
     currency: "RUB",
     interval: "month",
     searchesLimit: 100,
+    popular: true,
     features: [
       "100 поисков в месяц",
       "AI-ассистент",
@@ -65,26 +65,6 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       "Экспорт в Excel",
       "История поисков",
     ],
-  },
-  {
-    id: "pro",
-    name: "Про",
-    price: 14900,
-    currency: "RUB",
-    interval: "month",
-    searchesLimit: -1, // unlimited
-    popular: true,
-    features: [
-      "Неограниченные поиски",
-      "AI-ассистент",
-      "Все фильтры",
-      "Сохранение кандидатов",
-      "Экспорт в Excel/CSV",
-      "История поисков",
-      "Шаблоны запросов",
-      "Email-уведомления",
-      "Приоритетная поддержка",
-    ],
-  },
+  }
 ];
 

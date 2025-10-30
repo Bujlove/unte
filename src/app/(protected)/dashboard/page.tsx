@@ -194,8 +194,9 @@ export default function DashboardPage() {
                         ? "bg-primary text-white"
                         : "bg-gray-100 text-gray-900"
                     }`}
-                    dangerouslySetInnerHTML={{ __html: msg.content }}
-                  />
+                  >
+                    {msg.content}
+                  </div>
                 </div>
               ))}
               {loading && (

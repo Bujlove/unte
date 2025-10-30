@@ -6,6 +6,9 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 export async function GET() {
+  if (process.env.NODE_ENV === 'production') {
+    return new Response(JSON.stringify({ error: 'Not available' }), { status: 404 });
+  }
   try {
     // Check if tables exist
     const { data: tables, error: tablesError } = await supabase

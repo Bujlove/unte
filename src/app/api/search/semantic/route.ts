@@ -27,59 +27,69 @@ export async function POST(request: NextRequest) {
     // Generate embedding for search
     const searchEmbedding = await generateSearchEmbedding(searchQuery);
 
-    // Search resumes using vector similarity
-    const { data: resumes, error } = await supabase
-      .from("resumes")
-      .select(`
-        id,
-        full_name,
-        email,
-        phone,
-        location,
-        last_position,
-        last_company,
-        experience_years,
-        skills,
-        parsed_data,
-        embedding
-      `)
-      .not("embedding", "is", null)
-      .limit(50);
+    // Try DB-side vector search via RPC (pgvector); fallback to in-memory cosine if RPC not available
+    let results: any[] = [];
+    try {
+      const { data: matches, error: matchError } = await supabase.rpc('match_resumes', {
+        query_embedding: searchEmbedding as unknown as number[],
+        match_count: 20,
+      });
+      if (matchError) throw matchError;
+      results = (matches || []).map((r: any) => ({
+        id: r.id,
+        full_name: r.full_name,
+        current_position: r.last_position,
+        current_company: r.last_company,
+        skills: r.skills || [],
+        experience_years: r.experience_years || 0,
+        location: r.location,
+        score: Math.round((r.similarity || 0) * 100),
+      }));
+    } catch (e) {
+      // Fallback: fetch limited set and compute similarity locally
+      const { data: resumes, error } = await supabase
+        .from("resumes")
+        .select(`
+          id,
+          full_name,
+          email,
+          phone,
+          location,
+          last_position,
+          last_company,
+          experience_years,
+          skills,
+          parsed_data,
+          embedding
+        `)
+        .not("embedding", "is", null)
+        .limit(100);
 
-    if (error) {
-      console.error("Database search error:", error);
-      return NextResponse.json({ error: "Search failed" }, { status: 500 });
+      if (error) {
+        console.error("Database search error:", error);
+        return NextResponse.json({ error: "Search failed" }, { status: 500 });
+      }
+
+      results = (resumes || [])
+        .map((resume: any) => {
+          if (!resume.embedding) return null;
+          const resumeEmbedding = resume.embedding as unknown as number[];
+          const similarity = cosineSimilarity(searchEmbedding, resumeEmbedding);
+          return {
+            id: resume.id,
+            full_name: resume.full_name,
+            current_position: resume.last_position,
+            current_company: resume.last_company,
+            skills: resume.skills || [],
+            experience_years: resume.experience_years || 0,
+            location: resume.location,
+            score: Math.round(similarity * 100),
+          };
+        })
+        .filter((result: any) => result !== null)
+        .sort((a: any, b: any) => b.score - a.score)
+        .slice(0, 20);
     }
-
-    // Calculate similarity scores
-    const results = (resumes || [])
-      .map(resume => {
-        if (!resume.embedding) return null;
-        
-        // Parse embedding vector
-        const resumeEmbedding = JSON.parse(resume.embedding);
-        const similarity = cosineSimilarity(searchEmbedding, resumeEmbedding);
-        
-        return {
-          id: resume.id,
-          fullName: resume.full_name,
-          lastPosition: resume.last_position,
-          lastCompany: resume.last_company,
-          skills: resume.skills || [],
-          experienceYears: resume.experience_years || 0,
-          location: resume.location,
-          relevanceScore: Math.round(similarity * 100),
-          matchDetails: {
-            matchingSkills: findMatchingSkills(resume.skills || [], requirements.skills || []),
-            experienceMatch: checkExperienceMatch(resume.experience_years, requirements.experienceYears),
-            locationMatch: checkLocationMatch(resume.location, requirements.location),
-            summary: resume.parsed_data?.professional?.summary || ""
-          }
-        };
-      })
-      .filter(result => result !== null)
-      .sort((a, b) => b.relevanceScore - a.relevanceScore)
-      .slice(0, 20);
 
     // Save search to history
     await supabase.from("searches").insert({

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateEmbeddingWithJina } from "@/lib/jina/client";
 
 export async function GET(request: NextRequest) {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not available' }, { status: 404 });
+  }
   try {
     console.log('🧪 Testing Jina API...');
     

@@ -5,6 +5,9 @@ import { generateResumeEmbedding, generateSummaryEmbedding, embeddingToVector } 
 import { nanoid } from "nanoid";
 
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not available' }, { status: 404 });
+  }
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File;
