@@ -25,10 +25,7 @@ export default async function BillingPage() {
   }
 
   const currentPlan = SUBSCRIPTION_PLANS.find((p) => p.id === profile.subscription_type);
-  const trialDaysLeft =
-    profile.trial_ends_at && profile.subscription_type === "trial"
-      ? daysUntil(profile.trial_ends_at)
-      : 0;
+  const trialDaysLeft = 0;
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
@@ -41,11 +38,7 @@ export default async function BillingPage() {
           <div>
             <h3 className="text-2xl font-bold text-primary">{currentPlan?.name}</h3>
             <p className="text-gray-600 mt-1">
-              {profile.subscription_type === "trial" && trialDaysLeft > 0
-                ? `Пробный период заканчивается через ${trialDaysLeft} дней`
-                : profile.subscription_type === "pro"
-                ? "Неограниченные поиски"
-                : `${profile.searches_count} / ${profile.searches_limit} поисков использовано`}
+              {`${profile.searches_count} / ${profile.searches_limit} поисков использовано`}
             </p>
           </div>
           <div>
@@ -58,22 +51,15 @@ export default async function BillingPage() {
           </div>
         </div>
 
-        {profile.subscription_type === "trial" && trialDaysLeft <= 3 && trialDaysLeft > 0 && (
-          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-yellow-800">
-              ⚠️ Ваш пробный период скоро закончится. Выберите подходящий тариф, чтобы продолжить
-              пользоваться сервисом.
-            </p>
-          </div>
-        )}
+        {/* Нет пробного периода в текущей тарифной модели */}
       </div>
 
       {/* Available Plans */}
-      {profile.subscription_type !== "pro" && (
+      {profile.subscription_type !== "start" && (
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Доступные тарифы</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {SUBSCRIPTION_PLANS.filter((p) => p.id !== "trial" && p.id !== profile.subscription_type).map(
+            {SUBSCRIPTION_PLANS.filter((p) => p.id !== profile.subscription_type).map(
               (plan) => (
                 <div key={plan.id} className="bg-white rounded-xl shadow-sm border p-6">
                   <h3 className="text-xl font-bold text-gray-900 mb-2">{plan.name}</h3>
@@ -113,20 +99,18 @@ export default async function BillingPage() {
           <div>
             <p className="text-gray-600 text-sm mb-1">Лимит поисков</p>
             <p className="text-3xl font-bold text-gray-900">
-              {profile.subscription_type === "pro" ? "∞" : profile.searches_limit}
+              {profile.searches_limit}
             </p>
           </div>
           <div>
             <p className="text-gray-600 text-sm mb-1">Остаток</p>
             <p className="text-3xl font-bold text-primary">
-              {profile.subscription_type === "pro"
-                ? "∞"
-                : profile.searches_limit - profile.searches_count}
+              {profile.searches_limit - profile.searches_count}
             </p>
           </div>
         </div>
 
-        {profile.subscription_type !== "pro" && (
+        {profile.subscription_type !== "start" && (
           <div className="mt-6">
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
