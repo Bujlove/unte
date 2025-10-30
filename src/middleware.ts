@@ -97,21 +97,10 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Auth routes - redirect recruiters/admins to dashboard if already logged in
+  // Auth routes - always show login/register (no redirects)
   if (request.nextUrl.pathname.startsWith("/login") ||
       request.nextUrl.pathname.startsWith("/register")) {
-    if (user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-      if (profile?.role === 'recruiter' || profile?.role === 'admin') {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
-      }
-      // applicants stay on login/register or go to upload
-      return NextResponse.redirect(new URL("/upload", request.url));
-    }
+    return response;
   }
 
   return response;
