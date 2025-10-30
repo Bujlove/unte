@@ -202,24 +202,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <p className="text-gray-400">
-              &copy; 2024 Unte - AI Рекрутинг Платформа. Все права защищены.
-            </p>
-            <div className="mt-4 space-x-4">
-              <Link href="/pricing" className="text-gray-400 hover:text-white">
-                Тарифы
-              </Link>
-              <Link href="/upload" className="text-gray-400 hover:text-white">
-                Загрузить резюме
-              </Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      {/* Footer removed: global footer in RootLayout */}
     </div>
   );
 }

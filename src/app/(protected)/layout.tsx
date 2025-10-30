@@ -59,26 +59,28 @@ export default async function ProtectedLayout({
 
             <div className="flex items-center space-x-4">
               <div className="text-sm text-gray-600">
-                {profile?.subscription_type === "pro" ? (
-                  <span className="text-primary font-semibold">Pro</span>
-                ) : (
-                  <span>
-                    {profile?.searches_count || 0} / {profile?.searches_limit || 10} поисков
-                  </span>
-                )}
+                <span>
+                  {profile?.searches_count || 0} / {profile?.searches_limit || 10} поисков
+                </span>
               </div>
+              <div className="text-sm text-gray-700">{user.email}</div>
               <Link
                 href="/settings"
                 className="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium"
               >
-                Настройки
+                Аккаунт
               </Link>
               <Link
                 href="/billing"
-                className="bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary-600"
+                className="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium"
               >
-                Подписка
+                Тариф
               </Link>
+              <form action="/auth/signout" method="post">
+                <button type="submit" className="text-gray-500 hover:text-red-600 px-3 py-2 rounded-md text-sm font-medium">
+                  Выйти
+                </button>
+              </form>
             </div>
           </div>
         </div>

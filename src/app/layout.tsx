@@ -28,9 +28,9 @@ export default function RootLayout({
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
               <div>© {new Date().getFullYear()} Unte</div>
               <div className="space-x-4">
-                <span>Тел: +7 912 581 24 70</span>
-                <span>Email: buylovda@gmail.com</span>
-                <span>Telegram: @meetieru</span>
+                <a href="tel:+79125812470" className="hover:text-primary">Тел: +7 912 581 24 70</a>
+                <a href="mailto:buylovda@gmail.com" className="hover:text-primary">Email: buylovda@gmail.com</a>
+                <a href="https://t.me/meetieru" target="_blank" rel="noopener noreferrer" className="hover:text-primary">Telegram: @meetieru</a>
               </div>
             </div>
           </div>

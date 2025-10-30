@@ -18,7 +18,7 @@ export default function PricingPage() {
               key={plan.id}
               className={`bg-white rounded-2xl shadow-xl p-8 relative ${
                 plan.popular ? "ring-2 ring-primary" : ""
-              }`}
+              } flex flex-col h-full`}
             >
               {plan.popular && (
                 <div className="absolute top-0 right-8 transform -translate-y-1/2">
@@ -51,7 +51,7 @@ export default function PricingPage() {
                 </div>
               </div>
 
-              <ul className="space-y-3 mb-8">
+              <ul className="space-y-3 mb-8 flex-1">
                 {plan.features.map((feature, idx) => (
                   <li key={idx} className="flex items-start">
                     <span className="text-primary mr-2 text-xl">✓</span>
@@ -66,7 +66,7 @@ export default function PricingPage() {
                   plan.popular
                     ? "bg-primary text-white hover:bg-primary-600"
                     : "bg-gray-100 text-gray-900 hover:bg-gray-200"
-                }`}
+                } mt-auto`}
               >
                 {plan.id === "free" ? "Попробовать бесплатно" : "Выбрать тариф"}
               </Link>
@@ -93,45 +93,41 @@ export default function PricingPage() {
               <tbody>
                 <tr className="border-b">
                   <td className="py-4 px-4">Поиски в месяц</td>
-                  <td className="text-center py-4 px-4">10</td>
-                  <td className="text-center py-4 px-4">100</td>
-                  <td className="text-center py-4 px-4">Неограниченно</td>
+                  {SUBSCRIPTION_PLANS.map((plan) => (
+                    <td key={plan.id} className="text-center py-4 px-4">
+                      {plan.searchesLimit === -1 ? "∞" : plan.searchesLimit}
+                    </td>
+                  ))}
                 </tr>
                 <tr className="border-b">
                   <td className="py-4 px-4">AI-ассистент</td>
-                  <td className="text-center py-4 px-4">✓</td>
-                  <td className="text-center py-4 px-4">✓</td>
-                  <td className="text-center py-4 px-4">✓</td>
+                  {SUBSCRIPTION_PLANS.map((plan) => (
+                    <td key={plan.id} className="text-center py-4 px-4">✓</td>
+                  ))}
                 </tr>
                 <tr className="border-b">
                   <td className="py-4 px-4">Сохранение кандидатов</td>
-                  <td className="text-center py-4 px-4">-</td>
-                  <td className="text-center py-4 px-4">✓</td>
-                  <td className="text-center py-4 px-4">✓</td>
+                  {SUBSCRIPTION_PLANS.map((plan) => (
+                    <td key={plan.id} className="text-center py-4 px-4">
+                      {plan.id === "start" ? "✓" : "-"}
+                    </td>
+                  ))}
                 </tr>
                 <tr className="border-b">
                   <td className="py-4 px-4">Экспорт в Excel</td>
-                  <td className="text-center py-4 px-4">-</td>
-                  <td className="text-center py-4 px-4">✓</td>
-                  <td className="text-center py-4 px-4">✓</td>
-                </tr>
-                <tr className="border-b">
-                  <td className="py-4 px-4">Шаблоны запросов</td>
-                  <td className="text-center py-4 px-4">-</td>
-                  <td className="text-center py-4 px-4">-</td>
-                  <td className="text-center py-4 px-4">✓</td>
-                </tr>
-                <tr className="border-b">
-                  <td className="py-4 px-4">Email-уведомления</td>
-                  <td className="text-center py-4 px-4">-</td>
-                  <td className="text-center py-4 px-4">-</td>
-                  <td className="text-center py-4 px-4">✓</td>
+                  {SUBSCRIPTION_PLANS.map((plan) => (
+                    <td key={plan.id} className="text-center py-4 px-4">
+                      {plan.id === "start" ? "✓" : "-"}
+                    </td>
+                  ))}
                 </tr>
                 <tr>
                   <td className="py-4 px-4">Поддержка</td>
-                  <td className="text-center py-4 px-4">Email</td>
-                  <td className="text-center py-4 px-4">Email</td>
-                  <td className="text-center py-4 px-4">Приоритетная</td>
+                  {SUBSCRIPTION_PLANS.map((plan) => (
+                    <td key={plan.id} className="text-center py-4 px-4">
+                      {plan.id === "start" ? "Email" : "Email"}
+                    </td>
+                  ))}
                 </tr>
               </tbody>
             </table>

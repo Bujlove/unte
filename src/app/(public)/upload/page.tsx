@@ -15,8 +15,46 @@ export default function UploadPage() {
   } | null>(null);
   const [processingStatus, setProcessingStatus] = useState<{
     status: 'processing' | 'active' | 'failed';
+    progress?: number;
     resume?: any;
+    resumeId?: string;
   } | null>(null);
+
+  // Poll processing status if needed
+  useEffect(() => {
+    let interval: any;
+    if (processingStatus?.status === 'processing' && processingStatus.resumeId) {
+      interval = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/resumes/processing-status/${processingStatus.resumeId}`);
+          const data = await res.json();
+          if (data.success) {
+            if (data.processing?.status === 'completed') {
+              setProcessingStatus({
+                status: 'active',
+                progress: 100,
+                resumeId: processingStatus.resumeId,
+                resume: {
+                  fullName: data.data?.fullName,
+                  lastPosition: data.data?.position,
+                  lastCompany: data.summary?.company,
+                  experienceYears: data.data?.experience,
+                  location: data.summary?.location,
+                  qualityScore: data.data?.qualityScore || 0,
+                },
+              });
+              clearInterval(interval);
+            } else if (data.processing) {
+              setProcessingStatus((prev) => prev ? { ...prev, progress: data.processing.progress } : prev);
+            }
+          }
+        } catch (e) {
+          // ignore polling errors
+        }
+      }, 1500);
+    }
+    return () => interval && clearInterval(interval);
+  }, [processingStatus?.status, processingStatus?.resumeId]);
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -57,17 +95,24 @@ export default function UploadPage() {
           uploadToken: data.uploadToken,
           resumeId: data.resumeId,
         });
-        setProcessingStatus({ 
-          status: 'active',
-          resume: data.summary ? {
-            fullName: data.summary.fullName,
-            lastPosition: data.summary.position,
-            lastCompany: data.summary.company,
-            experienceYears: data.summary.experience,
-            location: data.summary.location,
-            qualityScore: 85 // Default quality score
-          } : null
-        });
+        // Immediately show processing progress; backend may already be finished, but we animate progress quickly
+        setProcessingStatus({ status: 'processing', progress: 10, resumeId: data.resumeId });
+        if (data.summary) {
+          // If summary already present, mark as completed
+          setProcessingStatus({
+            status: 'active',
+            progress: 100,
+            resumeId: data.resumeId,
+            resume: {
+              fullName: data.summary.fullName,
+              lastPosition: data.summary.position,
+              lastCompany: data.summary.company,
+              experienceYears: data.summary.experience,
+              location: data.summary.location,
+              qualityScore: 85,
+            },
+          });
+        }
         setSelectedFile(null);
       } else {
         setResult({
@@ -234,11 +279,9 @@ export default function UploadPage() {
                 </span>
               </div>
               
-              {processingStatus.status === 'processing' && (
-                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                  <div className="bg-primary h-full animate-pulse" style={{ width: '100%' }} />
-                </div>
-              )}
+              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                <div className="bg-primary h-full transition-all" style={{ width: `${processingStatus.progress ?? (processingStatus.status === 'active' ? 100 : 30)}%` }} />
+              </div>
               
               <p className="text-xs text-gray-500 mt-2 text-center">
                 {processingStatus.status === 'processing' && 'AI анализирует ваш опыт и навыки...'}
