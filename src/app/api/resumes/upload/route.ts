@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { validateFileSize, validateFileType, extractTextFromFile } from "@/lib/storage/file-parser";
 import { parseResumeTextWithJinaAndRetry } from "@/lib/jina/parser";
+import { parseResumeTextWithRetry as parseWithDeepseek } from "@/lib/deepseek/parser";
 import { calculateQualityScore, extractSkills, createResumeSummary } from "@/lib/deepseek/parser";
 import { generateResumeEmbedding, generateSummaryEmbedding, embeddingToVector } from "@/lib/jina/embeddings";
 import { generateToken } from "@/lib/utils";
@@ -51,10 +52,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse resume with Jina AI (with retry logic)
-    logger.info("Starting resume parsing with Jina AI...");
-    const parsedData = await parseResumeTextWithJinaAndRetry(text);
-    logger.info("Resume parsed successfully with Jina AI");
+    // Parse resume with DeepSeek first (faster/more comprehensive), fallback to Jina
+    logger.info("Starting resume parsing with DeepSeek...");
+    let parsedData;
+    try {
+      parsedData = await parseWithDeepseek(text);
+      logger.info("Resume parsed successfully with DeepSeek");
+    } catch (e) {
+      logger.warn("DeepSeek parsing failed, falling back to Jina:", e);
+      parsedData = await parseResumeTextWithJinaAndRetry(text);
+      logger.info("Resume parsed successfully with Jina");
+    }
     logger.debug("Parsed data skills:", parsedData.professional.skills);
     logger.debug("Parsed data languages:", parsedData.languages);
 

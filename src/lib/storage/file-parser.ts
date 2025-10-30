@@ -7,45 +7,32 @@
  * Extract text from PDF file using PDF.js (better quality)
  */
 export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
+  // Try pdf-parse first (generally faster in serverless)
   try {
-    // Try PDF.js first (better quality)
-    const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
-    
-    // Configure PDF.js to work without canvas
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
-    
-    const loadingTask = pdfjsLib.getDocument({
-      data: buffer,
-      useSystemFonts: true,
-      disableFontFace: true,
-      disableRange: true,
-      disableStream: true,
-    });
-    
-    const pdf = await loadingTask.promise;
-    let fullText = "";
-    
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(" ");
-      fullText += pageText + "\n";
-    }
-    
-    if (fullText.trim().length > 0) {
-      return fullText.trim();
+    const pdfParse = (await import("pdf-parse")).default;
+    const data = await pdfParse(buffer);
+    if (data.text && data.text.trim().length > 0) {
+      return data.text.trim();
     }
   } catch (error) {
-    console.log("PDF.js failed, trying pdf-parse fallback:", error);
+    console.log("pdf-parse failed, trying PDF.js:", error);
   }
-  
+
+  // Fallback to PDF.js for tough PDFs
   try {
-    // Fallback to pdf-parse
-    const pdfParse = (await import("pdf-parse")).default;
-    const data = await pdfParse(Buffer.from(buffer));
-    return data.text;
+    const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const loadingTask = pdfjsLib.getDocument({ data: buffer });
+    const pdf = await loadingTask.promise;
+    let fullText = "";
+    // Limit to first 20 pages for performance; parse all if <=20
+    const maxPages = Math.min(pdf.numPages, 20);
+    for (let i = 1; i <= maxPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = (textContent.items as any[]).map((item) => item.str).join(" ");
+      fullText += pageText + "\n";
+    }
+    return fullText.trim();
   } catch (error) {
     console.error("Error parsing PDF:", error);
     throw new Error("Failed to extract text from PDF");
