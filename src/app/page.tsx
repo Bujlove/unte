@@ -64,7 +64,7 @@ export default function Home() {
             </Link>
           </div>
           <p className="text-sm text-gray-500 mt-4">
-            7 дней бесплатно • Без кредитной карты • 10 поисков в подарок
+            10 поисков бесплатно
           </p>
         </div>
 
@@ -192,7 +192,7 @@ export default function Home() {
         <div className="bg-primary rounded-2xl p-12 text-center text-white">
           <h2 className="text-3xl font-bold mb-4">Готовы начать?</h2>
           <p className="text-xl mb-8 opacity-90">
-            Попробуйте бесплатно 7 дней. Без кредитной карты.
+            Попробуйте бесплатно.
           </p>
           <Link
             href="/register"

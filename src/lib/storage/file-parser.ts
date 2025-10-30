@@ -46,6 +46,21 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
 export async function extractTextFromDOC(buffer: Buffer): Promise<string> {
   try {
     console.log("Attempting to extract text from DOC file...");
+    // Try textract first if available
+    try {
+      const textract: any = (await import('textract')).default || (await import('textract'));
+      const text: string = await new Promise((resolve, reject) => {
+        textract.fromBufferWithMime('application/msword', buffer, (err: any, text: string) => {
+          if (err) return reject(err);
+          resolve(text || '');
+        });
+      });
+      if (text && text.trim().length > 50) {
+        return text.trim();
+      }
+    } catch (e) {
+      console.log('textract DOC failed, fallback to heuristics');
+    }
     
     // Convert buffer to string with multiple encodings
     let textContent = '';
@@ -173,6 +188,7 @@ export async function extractTextFromDOCX(buffer: Buffer): Promise<string> {
     }
 
     // Dynamic import to avoid issues in client-side
+    // Try mammoth first
     const mammoth = await import("mammoth");
     const result = await mammoth.extractRawText({ buffer });
     
@@ -183,7 +199,22 @@ export async function extractTextFromDOCX(buffer: Buffer): Promise<string> {
     return result.value;
   } catch (error) {
     console.error("Error parsing DOCX:", error);
-    // Try to extract as plain text if DOCX parsing fails
+    // Try textract for DOCX as fallback
+    try {
+      const textract: any = (await import('textract')).default || (await import('textract'));
+      const text: string = await new Promise((resolve, reject) => {
+        textract.fromBufferWithMime('application/vnd.openxmlformats-officedocument.wordprocessingml.document', buffer, (err: any, text: string) => {
+          if (err) return reject(err);
+          resolve(text || '');
+        });
+      });
+      if (text && text.trim().length > 50) {
+        return text.trim();
+      }
+    } catch (e) {
+      console.log('textract DOCX failed, fallback to plain text');
+    }
+    // Last resort: plain text
     const textContent = buffer.toString("utf-8");
     if (textContent && textContent.length > 50) {
       console.log("Falling back to plain text extraction");

@@ -342,16 +342,7 @@ export default function UploadPage() {
                 </div>
               )}
               
-              {result.uploadToken && (
-                <div className="mt-4 p-3 bg-white rounded border border-green-300">
-                  <p className="text-sm text-gray-700 mb-2">
-                    Сохраните эту ссылку для обновления резюме в будущем:
-                  </p>
-                  <p className="text-xs text-gray-600 break-all font-mono">
-                    {window.location.origin}/upload?token={result.uploadToken}
-                  </p>
-                </div>
-              )}
+              {/* Соискателю не требуется дополнительная ссылка */}
             </div>
           )}
         </div>
@@ -375,7 +366,7 @@ export default function UploadPage() {
             </li>
             <li className="flex items-start">
               <span className="mr-2">⏰</span>
-              <span>Автоматическое удаление через 180 дней (GDPR compliance)</span>
+              <span>Вы можете закрыть страницу — обработка продолжается на сервере</span>
             </li>
           </ul>
         </div>
