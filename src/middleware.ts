@@ -58,7 +58,7 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protected routes - require authentication and recruiter/admin role
+  // Protected routes - require authentication
   if (request.nextUrl.pathname.startsWith("/dashboard") ||
       request.nextUrl.pathname.startsWith("/search") ||
       request.nextUrl.pathname.startsWith("/candidates") ||
@@ -66,16 +66,6 @@ export async function middleware(request: NextRequest) {
       request.nextUrl.pathname.startsWith("/billing")) {
     if (!user) {
       return NextResponse.redirect(new URL("/login", request.url));
-    }
-    // role check for recruiter/admin access
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-    const role = profile?.role;
-    if (role !== 'recruiter' && role !== 'admin') {
-      return NextResponse.redirect(new URL("/upload", request.url));
     }
   }
 
@@ -101,6 +91,13 @@ export async function middleware(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith("/login") ||
       request.nextUrl.pathname.startsWith("/register")) {
     return response;
+  }
+
+  // Upload page - only for unauthenticated; authenticated users go to dashboard
+  if (request.nextUrl.pathname.startsWith("/upload")) {
+    if (user) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
   }
 
   return response;

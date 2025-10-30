@@ -71,17 +71,8 @@ export default function LoginPage() {
         if (error) {
           setMessage({ type: "error", text: error.message });
         } else {
-          // fetch role and route recruiters/admins to dashboard, others to upload
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', authData.user?.id)
-            .single();
-          if (profile?.role === 'recruiter' || profile?.role === 'admin') {
-            window.location.href = "/dashboard";
-          } else {
-            window.location.href = "/upload";
-          }
+          // Любой авторизованный пользователь попадает в кабинет
+          window.location.href = "/dashboard";
         }
       }
     } catch (error) {
