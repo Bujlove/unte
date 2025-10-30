@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
         score: Math.round((r.similarity || 0) * 100),
       }));
       // Apply smart filters
-      base = base.filter(c => {
+      base = base.filter((c: any) => {
         const locOk = requirements.location ? (c.location || '').toLowerCase().includes(String(requirements.location).toLowerCase()) : true;
         const exp = c.experience_years || 0;
         const expOk = requirements.experienceYears ? (
