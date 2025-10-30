@@ -1,4 +1,4 @@
-import { generateEmbeddingWithJina } from "@/lib/jina/embeddings";
+import { generateEmbeddingWithJina, generateEmbeddingsWithJina } from "@/lib/jina/client";
 import { openai } from "@/lib/openai/client";
 
 export async function generateEmbedding(text: string): Promise<number[]> {
@@ -29,7 +29,6 @@ export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
     }
   }
   // Fallback to Jina batch
-  const { generateEmbeddingsWithJina } = await import("@/lib/jina/client");
   return await generateEmbeddingsWithJina(texts);
 }
 
