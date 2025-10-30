@@ -38,7 +38,7 @@ export async function GET(
         full_name,
         email,
         phone,
-        current_position,
+        last_position,
         experience_years,
         quality_score
       `)
@@ -111,7 +111,7 @@ export async function GET(
         fullName: resume.full_name,
         email: resume.email,
         phone: resume.phone,
-        position: resume.current_position,
+        position: resume.last_position,
         experience: resume.experience_years,
         qualityScore: resume.quality_score
       },
