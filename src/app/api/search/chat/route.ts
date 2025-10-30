@@ -15,15 +15,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: canSearch } = await supabase.rpc("can_user_search", {
-      p_user_id: user.id,
-    });
-    if (!canSearch) {
-      return NextResponse.json(
-        { error: "Search limit reached or subscription expired" },
-        { status: 403 }
-      );
-    }
+    // Limits disabled per request: allow all authenticated users to search
 
     const { messages, extractRequirements } = await request.json();
 
