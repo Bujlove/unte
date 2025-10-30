@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
         match_count: 20,
       });
       if (matchError) throw matchError;
-      results = (matches || []).map((r: any) => ({
+      let base = (matches || []).map((r: any) => ({
         id: r.id,
         full_name: r.full_name,
         current_position: r.last_position,
@@ -45,6 +45,19 @@ export async function POST(request: NextRequest) {
         location: r.location,
         score: Math.round((r.similarity || 0) * 100),
       }));
+      // Apply smart filters
+      base = base.filter(c => {
+        const locOk = requirements.location ? (c.location || '').toLowerCase().includes(String(requirements.location).toLowerCase()) : true;
+        const exp = c.experience_years || 0;
+        const expOk = requirements.experienceYears ? (
+          (requirements.experienceYears.min ? exp >= requirements.experienceYears.min : true) &&
+          (requirements.experienceYears.max ? exp <= requirements.experienceYears.max : true)
+        ) : true;
+        const skillsReq: string[] = Array.isArray(requirements.skills) ? requirements.skills : [];
+        const skillsOk = skillsReq.length > 0 ? skillsReq.every(s => (c.skills || []).some((t:string)=>String(t).toLowerCase().includes(String(s).toLowerCase()))) : true;
+        return locOk && expOk && skillsOk;
+      });
+      results = base;
     } catch (e) {
       // Fallback: fetch limited set and compute similarity locally
       const { data: resumes, error } = await supabase

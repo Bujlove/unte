@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { extractTextFromFile } from "@/lib/storage/file-parser";
-import { detectFileType, extractSimpleData, calculateSimpleQualityScore } from "@/lib/simple-parser";
+import { parseResumeTextWithRetry as parseWithDeepseek, calculateQualityScore, extractSkills, createResumeSummary } from "@/lib/deepseek/parser";
+import { parseResumeTextWithJinaAndRetry } from "@/lib/jina/parser";
+import { generateResumeEmbedding, generateSummaryEmbedding, embeddingToVector } from "@/lib/jina/embeddings";
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,11 +48,7 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await fileData.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Step 1: Detect file type
-    const fileType = detectFileType(resume.file_name, resume.mime_type);
-    console.log(`Detected file type: ${fileType}`);
-
-    // Step 2: Extract text based on file type
+    // Extract text based on file type
     let text: string;
     try {
       text = await extractTextFromFile(buffer, resume.mime_type, resume.file_name);
@@ -63,36 +61,69 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "File appears to be empty or corrupted" }, { status: 400 });
     }
 
-    // Step 3: Extract key data using simple parser
-    const extractedData = extractSimpleData(text);
-    console.log("Extracted data:", extractedData);
+    // Normalize text (basic)
+    const normalized = text
+      .replace(/[\u0000-\u001F]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
 
-    // Step 4: Calculate quality score
-    const qualityScore = calculateSimpleQualityScore(extractedData);
+    // AI parsing: DeepSeek → fallback Jina
+    let parsed;
+    try {
+      parsed = await parseWithDeepseek(normalized);
+    } catch (e) {
+      parsed = await parseResumeTextWithJinaAndRetry(normalized);
+    }
 
-    // Step 5: Update resume with extracted data
+    const qualityScore = calculateQualityScore(parsed);
+    const skills = extractSkills(parsed);
+    const embedding = await generateResumeEmbedding(parsed);
+    const summaryEmbedding = await generateSummaryEmbedding(parsed);
+
+    // Clean parsed_data
+    const cleanParsedData = {
+      ...parsed,
+      experience: parsed.experience && parsed.experience.length > 0 ? parsed.experience : null,
+      education: parsed.education && parsed.education.length > 0 ? parsed.education : null,
+      languages: parsed.languages && parsed.languages.length > 0 ? JSON.stringify(parsed.languages) : null,
+      additional: {
+        ...parsed.additional,
+        certifications: parsed.additional.certifications && parsed.additional.certifications.length > 0 ? parsed.additional.certifications : null,
+        publications: parsed.additional.publications && parsed.additional.publications.length > 0 ? parsed.additional.publications : null,
+        projects: parsed.additional.projects && parsed.additional.projects.length > 0 ? parsed.additional.projects : null,
+      },
+      professional: {
+        ...parsed.professional,
+        skills: {
+          ...parsed.professional.skills,
+          soft: parsed.professional.skills.soft && parsed.professional.skills.soft.length > 0 ? parsed.professional.skills.soft : null,
+          tools: parsed.professional.skills.tools && parsed.professional.skills.tools.length > 0 ? parsed.professional.skills.tools : null,
+        }
+      }
+    } as any;
+
+    // Update resume with AI data
     const { error: updateError } = await supabase
       .from("resumes")
       .update({
-        full_name: extractedData.fullName,
-        email: extractedData.email,
-        phone: extractedData.phone,
-        location: extractedData.location,
-        last_position: extractedData.position,
-        last_company: extractedData.company,
-        experience_years: extractedData.experience,
-        education_level: extractedData.education,
-        skills: extractedData.skills.length > 0 ? extractedData.skills : null,
-        quality_score: qualityScore,
+        full_name: parsed.personal.fullName,
+        email: parsed.personal.email,
+        phone: parsed.personal.phone,
+        location: parsed.personal.location,
+        parsed_data: cleanParsedData,
+        skills: skills && skills.length > 0 ? skills : null,
+        experience_years: parsed.professional.totalExperience,
+        last_position: parsed.experience?.[0]?.position || null,
+        last_company: parsed.experience?.[0]?.company || null,
+        education_level: parsed.education?.[0]?.degree || null,
+        languages: parsed.languages && parsed.languages.length > 0 ? JSON.stringify(parsed.languages) : null,
+        embedding: embeddingToVector(embedding),
+        summary_embedding: embeddingToVector(summaryEmbedding),
         status: "active",
+        processing_status: "completed",
+        processing_completed_at: new Date().toISOString(),
+        quality_score: qualityScore,
         updated_at: new Date().toISOString(),
-        // Store raw text for future AI processing if needed
-        parsed_data: {
-          raw_text: text,
-          file_type: fileType,
-          extracted_data: extractedData,
-          extraction_method: "simple_regex"
-        }
       })
       .eq("id", resumeId);
 
@@ -101,16 +132,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to update resume" }, { status: 500 });
     }
 
-    return NextResponse.json({
-      success: true,
-      message: "Resume processed successfully",
-      data: {
-        resumeId,
-        extractedData,
-        qualityScore,
-        fileType
-      }
-    });
+    // Create/Update summary
+    const summaryData = createResumeSummary(parsed);
+    const { error: sumErr } = await supabase
+      .from("resume_summaries")
+      .insert({
+        resume_id: resumeId,
+        quick_id: `RES-${Date.now()}-${resumeId.substring(0,8)}`,
+        upload_token: resume.upload_token,
+        ...summaryData,
+      });
+
+    return NextResponse.json({ success: true, message: "Resume processed successfully", resumeId });
 
   } catch (error) {
     console.error("Resume processing error:", error);
