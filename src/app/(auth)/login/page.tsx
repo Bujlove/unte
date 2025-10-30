@@ -62,8 +62,8 @@ export default function LoginPage() {
           });
         }
       } else {
-        // Password login (для разработки)
-        const { error } = await supabase.auth.signInWithPassword({
+        // Password login
+        const { data: authData, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
@@ -71,7 +71,17 @@ export default function LoginPage() {
         if (error) {
           setMessage({ type: "error", text: error.message });
         } else {
-          window.location.href = "/dashboard";
+          // fetch role and route recruiters/admins to dashboard, others to upload
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', authData.user?.id)
+            .single();
+          if (profile?.role === 'recruiter' || profile?.role === 'admin') {
+            window.location.href = "/dashboard";
+          } else {
+            window.location.href = "/upload";
+          }
         }
       }
     } catch (error) {

@@ -22,8 +22,9 @@ export default function Home() {
               <Link
                 href="/login"
                 className="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium"
+                title="Вход для рекрутеров и нанимающих менеджеров"
               >
-                Войти
+                Войти (для рекрутеров)
               </Link>
               <Link
                 href="/register"
