@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateSearchEmbedding, cosineSimilarity } from "@/lib/jina/embeddings";
+import { openai } from "@/lib/openai/client";
 
 export async function POST(request: NextRequest) {
   try {
@@ -112,11 +113,36 @@ export async function POST(request: NextRequest) {
       results_count: results.length,
     });
 
-    return NextResponse.json({
-      success: true,
-      results,
-      count: results.length,
-    });
+    // Optional rerank with OpenAI if key present
+    let finalResults = results;
+    if (process.env.OPENAI_API_KEY && results.length > 0) {
+      try {
+        const top = results.slice(0, 20);
+        const prompt = `Требования: ${JSON.stringify(requirements)}\nКандидаты:\n${top.map((c:any)=>`id:${c.id}; name:${c.full_name}; pos:${c.current_position}; skills:${(c.skills||[]).slice(0,10).join(', ')}; exp:${c.experience_years}; loc:${c.location}`).join('\n')}\nВерни ТОЛЬКО JSON массива вида [{"id":"...","score":0..100,"reasons":"..."}]`;
+        const resp = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          temperature: 0.2,
+          response_format: { type: "json_object" },
+          messages: [
+            { role: "system", content: "Ты оцениваешь соответствие кандидатов требованиям; отвечай только JSON." },
+            { role: "user", content: prompt },
+          ],
+        });
+        const content = resp.choices[0]?.message?.content || "{}";
+        const parsed = JSON.parse(content);
+        const scoreMap = new Map<string, number>();
+        if (Array.isArray(parsed)) {
+          parsed.forEach((r:any)=> scoreMap.set(String(r.id), Number(r.score)||0));
+        } else if (Array.isArray(parsed.results)) {
+          parsed.results.forEach((r:any)=> scoreMap.set(String(r.id), Number(r.score)||0));
+        }
+        finalResults = top
+          .map((r:any)=> ({ ...r, score: Math.max(r.score || 0, Math.round(scoreMap.get(r.id) || 0)) }))
+          .sort((a:any,b:any)=> b.score - a.score);
+      } catch {}
+    }
+
+    return NextResponse.json({ success: true, results: finalResults, count: finalResults.length });
   } catch (error) {
     console.error("Semantic search error:", error);
     return NextResponse.json(

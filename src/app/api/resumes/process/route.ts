@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { extractTextFromFile } from "@/lib/storage/file-parser";
 import { parseResumeTextWithRetry as parseWithDeepseek, calculateQualityScore, extractSkills, createResumeSummary } from "@/lib/deepseek/parser";
+import { normalizeSkills } from "@/lib/search/normalize";
 import { parseResumeTextWithJinaAndRetry } from "@/lib/jina/parser";
 import { generateResumeEmbedding, generateSummaryEmbedding, embeddingToVector } from "@/lib/jina/embeddings";
 
@@ -77,6 +78,7 @@ export async function POST(request: NextRequest) {
 
     const qualityScore = calculateQualityScore(parsed);
     const skills = extractSkills(parsed);
+    const normalizedSkills = await normalizeSkills(skills || undefined);
     const embedding = await generateResumeEmbedding(parsed);
     const summaryEmbedding = await generateSummaryEmbedding(parsed);
 
@@ -112,6 +114,7 @@ export async function POST(request: NextRequest) {
         location: parsed.personal.location,
         parsed_data: cleanParsedData,
         skills: skills && skills.length > 0 ? skills : null,
+        normalized_skills: normalizedSkills,
         experience_years: parsed.professional.totalExperience,
         last_position: parsed.experience?.[0]?.position || null,
         last_company: parsed.experience?.[0]?.company || null,
@@ -141,6 +144,7 @@ export async function POST(request: NextRequest) {
         quick_id: `RES-${Date.now()}-${resumeId.substring(0,8)}`,
         upload_token: resume.upload_token,
         ...summaryData,
+        normalized_skills: normalizedSkills,
       });
 
     return NextResponse.json({ success: true, message: "Resume processed successfully", resumeId });
