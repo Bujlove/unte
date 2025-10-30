@@ -61,14 +61,14 @@ export default function PricingPage() {
               </ul>
 
               <Link
-                href={plan.id === "trial" ? "/register" : "/billing"}
+                href={plan.id === "free" ? "/register" : "/billing"}
                 className={`block w-full text-center py-3 rounded-lg font-semibold transition ${
                   plan.popular
                     ? "bg-primary text-white hover:bg-primary-600"
                     : "bg-gray-100 text-gray-900 hover:bg-gray-200"
                 }`}
               >
-                {plan.id === "trial" ? "Попробовать бесплатно" : "Выбрать тариф"}
+                {plan.id === "free" ? "Попробовать бесплатно" : "Выбрать тариф"}
               </Link>
             </div>
           ))}
