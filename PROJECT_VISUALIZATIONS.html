@@ -567,6 +567,119 @@ flowchart TD
             </div>
         </div>
 
+        <!-- Прогноз на год вперед -->
+        <div class="section">
+            <h2>📊 Прогноз роста через 12 месяцев</h2>
+            
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value">2,500+</div>
+                    <div class="stat-label">Активных пользователей</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">45,000+</div>
+                    <div class="stat-label">Обработанных резюме</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">18,000+</div>
+                    <div class="stat-label">Поисковых запросов</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">₽2.5M</div>
+                    <div class="stat-label">Выручка (годовая)</div>
+                </div>
+            </div>
+
+            <!-- График роста пользователей -->
+            <div class="chart-container">
+                <canvas id="userGrowthChart"></canvas>
+            </div>
+
+            <!-- График роста резюме -->
+            <div class="chart-container">
+                <canvas id="resumeGrowthChart"></canvas>
+            </div>
+
+            <!-- Прогноз дохода -->
+            <div class="chart-container">
+                <canvas id="revenueChart"></canvas>
+            </div>
+
+            <!-- Прогноз использования -->
+            <div class="chart-container">
+                <canvas id="usageChart"></canvas>
+            </div>
+
+            <!-- Прогнозные метрики по месяцам -->
+            <div class="mermaid">
+gantt
+    title Прогноз развития проекта (12 месяцев)
+    dateFormat YYYY-MM
+    section Пользователи
+    Старт: 50 пользователей    :2025-01, 1M
+    Рост до 500                :2025-04, 3M
+    Рост до 1,500              :2025-07, 3M
+    Рост до 2,500+             :2025-12, 5M
+    
+    section Резюме
+    Обработка 1,000            :2025-02, 2M
+    Обработка 10,000           :2025-06, 4M
+    Обработка 25,000           :2025-09, 3M
+    Обработка 45,000+          :2025-12, 3M
+    
+    section Функции
+    Биллинг система            :2025-02, 2M
+    Экспорт данных             :2025-03, 1M
+    Админ-панель               :2025-04, 2M
+    API для партнеров          :2025-06, 3M
+    PWA приложение             :2025-08, 2M
+            </div>
+
+            <!-- Прогноз конверсии -->
+            <div class="grid">
+                <div class="card">
+                    <h3>📈 Прогноз конверсии</h3>
+                    <ul>
+                        <li><strong>Free → Start:</strong> 25% (625 чел)</li>
+                        <li><strong>Start → Premium:</strong> 15% (94 чел)</li>
+                        <li><strong>Средний чек:</strong> ₽729/месяц</li>
+                        <li><strong>MRR:</strong> ₽210,000</li>
+                        <li><strong>ARR:</strong> ₽2,520,000</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>🎯 Метрики использования</h3>
+                    <ul>
+                        <li><strong>Активных рекрутеров:</strong> 2,000</li>
+                        <li><strong>Средний поисков/месяц:</strong> 7.5</li>
+                        <li><strong>Сохранено кандидатов:</strong> 12,000</li>
+                        <li><strong>Успешных наймов:</strong> 450+</li>
+                        <li><strong>Retention Rate:</strong> 75%</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>🚀 Технические метрики</h3>
+                    <ul>
+                        <li><strong>Обработано резюме:</strong> 45,000+</li>
+                        <li><strong>Среднее время парсинга:</strong> 12s</li>
+                        <li><strong>Точность поиска:</strong> 92%</li>
+                        <li><strong>Uptime:</strong> 99.95%</li>
+                        <li><strong>API запросов/день:</strong> 50,000+</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>💰 Бизнес-метрики</h3>
+                    <ul>
+                        <li><strong>Выручка/месяц:</strong> ₽210K</li>
+                        <li><strong>Выручка/год:</strong> ₽2.5M</li>
+                        <li><strong>CAC:</strong> ₽850</li>
+                        <li><strong>LTV:</strong> ₽8,750</li>
+                        <li><strong>LTV/CAC:</strong> 10.3x</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
         <!-- Текущий статус -->
         <div class="section">
             <h2>✅ Текущий статус проекта</h2>
@@ -799,6 +912,237 @@ flowchart TD
                         beginAtZero: true,
                         max: 100,
                         title: { display: true, text: 'Точность (%)' }
+                    }
+                }
+            }
+        });
+
+        // Рост пользователей (прогноз на 12 месяцев)
+        const userGrowthCtx = document.getElementById('userGrowthChart').getContext('2d');
+        new Chart(userGrowthCtx, {
+            type: 'line',
+            data: {
+                labels: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'],
+                datasets: [{
+                    label: 'Активные пользователи',
+                    data: [50, 120, 250, 480, 720, 1000, 1320, 1650, 1950, 2200, 2400, 2500],
+                    borderColor: 'rgba(102, 126, 234, 1)',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 5,
+                    pointBackgroundColor: 'rgba(118, 75, 162, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Прогноз роста пользователей (12 месяцев)',
+                        font: { size: 16 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toLocaleString('ru-RU') + ' чел';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Количество пользователей' },
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString('ru-RU');
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Рост резюме (прогноз на 12 месяцев)
+        const resumeGrowthCtx = document.getElementById('resumeGrowthChart').getContext('2d');
+        new Chart(resumeGrowthCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'],
+                datasets: [{
+                    label: 'Обработанных резюме',
+                    data: [200, 500, 1200, 2500, 4200, 6500, 9500, 13500, 18000, 23500, 31000, 40000],
+                    backgroundColor: 'rgba(118, 75, 162, 0.8)',
+                    borderColor: 'rgba(102, 126, 234, 1)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Прогноз обработки резюме (кумулятивно)',
+                        font: { size: 16 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toLocaleString('ru-RU');
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Количество резюме' },
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString('ru-RU');
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Прогноз дохода
+        const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+        new Chart(revenueCtx, {
+            type: 'line',
+            data: {
+                labels: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'],
+                datasets: [{
+                    label: 'Выручка (MRR)',
+                    data: [15000, 32000, 55000, 85000, 115000, 145000, 170000, 190000, 205000, 215000, 210000, 210000],
+                    borderColor: 'rgba(16, 185, 129, 1)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 5,
+                    pointBackgroundColor: 'rgba(16, 185, 129, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    yAxisID: 'y'
+                }, {
+                    label: 'Новые подписки',
+                    data: [25, 55, 90, 130, 160, 185, 205, 220, 230, 240, 245, 250],
+                    borderColor: 'rgba(102, 126, 234, 1)',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    tension: 0.4,
+                    fill: false,
+                    pointRadius: 4,
+                    pointBackgroundColor: 'rgba(118, 75, 162, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    yAxisID: 'y1'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Прогноз выручки и роста подписок',
+                        font: { size: 16 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                if (context.datasetIndex === 0) {
+                                    return context.dataset.label + ': ₽' + context.parsed.y.toLocaleString('ru-RU');
+                                } else {
+                                    return context.dataset.label + ': ' + context.parsed.y + ' подписок';
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        title: { display: true, text: 'Выручка (₽)' },
+                        ticks: {
+                            callback: function(value) {
+                                return '₽' + value.toLocaleString('ru-RU');
+                            }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        beginAtZero: true,
+                        title: { display: true, text: 'Подписки' },
+                        grid: {
+                            drawOnChartArea: false,
+                        },
+                    }
+                }
+            }
+        });
+
+        // Прогноз использования
+        const usageCtx = document.getElementById('usageChart').getContext('2d');
+        new Chart(usageCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'],
+                datasets: [{
+                    label: 'Поисковые запросы',
+                    data: [80, 220, 480, 920, 1400, 2000, 2600, 3200, 3800, 4350, 4850, 5300],
+                    backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                    borderColor: 'rgba(102, 126, 234, 1)',
+                    borderWidth: 2
+                }, {
+                    label: 'Сохранено кандидатов',
+                    data: [150, 400, 850, 1600, 2500, 3600, 4800, 6100, 7500, 8900, 10200, 11400],
+                    backgroundColor: 'rgba(118, 75, 162, 0.8)',
+                    borderColor: 'rgba(118, 75, 162, 1)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Прогноз использования платформы',
+                        font: { size: 16 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toLocaleString('ru-RU');
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        stacked: false,
+                        title: { display: true, text: 'Количество действий' },
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString('ru-RU');
+                            }
+                        }
                     }
                 }
             }
